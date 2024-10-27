@@ -1,0 +1,21 @@
+{
+    "name": "nft-marketplace-contracts",
+    "version": "1.0.0",
+    "description": "Smart contracts for NFT marketplace",
+    "scripts": {
+        "copy-abi": "node scripts/copy-abi.js",
+        "postdeploy": "npm run copy-abi"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.5",
+        "fs-extra": "^11.2.0"
+    },
+    "main": "index.js",
+    "directories": {
+        "lib": "lib",
+        "test": "test"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
