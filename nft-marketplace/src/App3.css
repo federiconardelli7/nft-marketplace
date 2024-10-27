@@ -1,0 +1,251 @@
+:root {
+    --primary-color: #2081e2;
+    --primary-dark: #1868b7;
+    --secondary-color: #34c6ce;
+    --accent-color: #f6c000;
+    --background-light: #ffffff;
+    --background-dark: #202225;
+    --text-light: #353840;
+    --text-dark: #ffffff;
+    --gray-light: #e5e8eb;
+    --gray-dark: #2c2f36;
+    --success-color: #34c77b;
+    --error-color: #ff3b3b;
+  }
+  
+  .light-mode {
+    --background-color: var(--background-light);
+    --text-color: var(--text-light);
+    --card-bg: var(--background-light);
+    --border-color: var(--gray-light);
+  }
+  
+  .dark-mode {
+    --background-color: var(--background-dark);
+    --text-color: var(--text-dark);
+    --card-bg: var(--gray-dark);
+    --border-color: #3d4144;
+  }
+  
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  /* Header Styles */
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .app-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .mode-toggle,
+  .connect-button {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .mode-toggle {
+    background-color: var(--gray-light);
+    color: var(--text-light);
+  }
+  
+  .connect-button {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .connect-button:hover {
+    background-color: var(--primary-dark);
+  }
+  
+  /* Hero Section Styles */
+  .hero-section {
+    text-align: center;
+    padding: 60px 0;
+  }
+  
+  .hero-title {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+  
+  .hero-subtitle {
+    font-size: 24px;
+    color: var(--secondary-color);
+    margin-bottom: 40px;
+  }
+  
+  /* NFT Grid Styles */
+  .nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  .nft-item {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    border: 1px solid var(--border-color);
+  }
+  
+  .nft-item:hover {
+    transform: translateY(-5px);
+  }
+  
+  .nft-image {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+  }
+  
+  .nft-info {
+    padding: 15px;
+  }
+  
+  .nft-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .nft-price {
+    font-size: 14px;
+    color: var(--secondary-color);
+  }
+  
+  /* Button Styles */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+  }
+  
+  .btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    opacity: 0.9;
+  }
+  
+  /* Form Styles */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  
+  input[type="text"],
+  input[type="number"],
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
+  /* Marketplace Page Styles */
+  .marketplace-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .marketplace-title {
+    font-size: 32px;
+    font-weight: bold;
+  }
+  
+  .marketplace-filters {
+    width: 250px;
+    padding: 20px;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+  }
+  
+  .marketplace-content {
+    display: flex;
+    gap: 30px;
+  }
+  
+  /* Mint NFT Page Styles */
+  .mint-nft-page {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .image-upload {
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 36px;
+    }
+  
+    .hero-subtitle {
+      font-size: 18px;
+    }
+  
+    .marketplace-content {
+      flex-direction: column;
+    }
+  
+    .marketplace-filters {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+  }

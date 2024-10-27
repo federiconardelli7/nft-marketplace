@@ -1,0 +1,67 @@
+.marketplace-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  .nft-item {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s ease;
+  }
+  
+  .nft-item:hover {
+    transform: translateY(-5px);
+  }
+  
+  .nft-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+  
+  .nft-item h3 {
+    margin: 10px 0 5px;
+    color: var(--primary-color);
+  }
+  
+  .nft-item p {
+    margin: 5px 0;
+    color: var(--text-color);
+  }
+  
+  .nft-item button {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .nft-item button:hover {
+    background-color: var(--accent-color);
+  }
+  
+  .loading, .error {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 1.2em;
+    color: var(--text-color);
+  }
+  
+  .error {
+    color: #e74c3c;
+  }

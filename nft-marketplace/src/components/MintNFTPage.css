@@ -1,0 +1,390 @@
+.mint-nft-page {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.mint-nft-content {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: var(--card-shadow);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mint-nft-page h1 {
+  color: var(--primary-color);
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.image-upload {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  border: 2px dashed var(--primary-color);
+  border-radius: 10px;
+  margin-bottom: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.image-upload:hover {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.image-upload img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.image-upload.dragging {
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+  border-color: var(--primary-color);
+}
+
+.image-upload.uploading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.upload-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 18px;
+}
+
+.custom-file-upload {
+  color: var(--primary-color);
+  font-size: 18px;
+  transition: all 0.3s ease;
+  text-align: center;
+  padding: 20px;
+}
+
+.image-upload.dragging .custom-file-upload {
+  color: var(--secondary-color);
+}
+
+.form-group {
+  margin-bottom: 25px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+input[type="text"],
+input[type="number"],
+textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  box-sizing: border-box;
+  margin: 0;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+}
+
+.traits-section {
+  margin-top: 30px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.trait-input {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.trait-input input {
+  flex: 1;
+}
+
+button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  font-size: 16px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.submit-button {
+  display: block;
+  width: 100%;
+  margin-top: 30px;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+  box-sizing: border-box;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+}
+
+.submit-button:disabled {
+  background-color: var(--primary-color);
+  opacity: 0.6;
+}
+
+/* Add Trait button (green) */
+button[type="button"]:not(.remove-trait) {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+button[type="button"]:not(.remove-trait):hover {
+  background-color: #27ae60;
+}
+
+/* Remove Trait button (red) */
+.remove-trait {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.remove-trait:hover {
+  background-color: #c0392b;
+}
+
+/* Error and Progress Messages */
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #e74c3c;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.progress-message {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid var(--primary-color);
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .mint-nft-content {
+      padding: 20px;
+  }
+
+  .trait-input {
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .trait-input input {
+      width: 100%;
+  }
+
+  .remove-trait {
+      width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .mint-nft-page {
+      padding: 20px 10px;
+  }
+
+  .image-upload {
+      height: 200px;
+  }
+
+  .custom-file-upload {
+      font-size: 16px;
+      padding: 10px;
+  }
+}
+
+.minting-status {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid var(--primary-color);
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.minting-status.success {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: #27ae60;
+  border-color: #27ae60;
+}
+
+.minting-status.error {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.transaction-hash {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.9em;
+  margin-top: 8px;
+}
+
+.view-transaction-button {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.view-transaction-button:hover {
+  background-color: var(--secondary-color);
+}
+
+.view-transaction-button {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.view-transaction-button:hover {
+  background-color: var(--secondary-color);
+}
+
+.minting-status {
+  background-color: rgba(52, 152, 219, 0.1);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.minting-status p {
+  margin: 0 0 10px 0;
+}
+
+.cost-info {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--primary-color);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cost-info h4 {
+  margin: 0 0 10px 0;
+  color: var(--primary-color);
+}
+
+.cost-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  color: var(--text-color);
+}
+
+.cost-item span:first-child {
+  color: var(--secondary-color);
+}
+
+.cost-item.total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--primary-color);
+  font-weight: bold;
+}
+
+.cost-item.total span:first-child {
+  color: var(--primary-color);
+}
+
+.matic-equivalent {
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-left: 5px;
+}
+
+.usd-value {
+  margin-left: 8px;
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+.cost-item span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cost-item.total .usd-value {
+  color: inherit;
+  opacity: 1;
+}

@@ -1,0 +1,389 @@
+:root {
+    --primary-color: #3498db;
+    --primary-color-hover: #2980b9;
+    --primary-color-light: #5dade2;
+    --text-color: #333;
+    --bg-color: #f8f9fa;
+    --input-border: #bdc3c7;
+    --input-focus: #3498db;
+    --card-bg: #ffffff;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark-mode {
+    --text-color: #e0e0e0;
+    --bg-color: #121212;
+    --input-border: #4a4a4a;
+    --input-focus: #5dade2;
+    --card-bg: #1e1e1e;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .sell-nft-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--text-color);
+    font-size: 2rem;
+  }
+  
+  .nft-row-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+  }
+  
+  .nft-card {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    width: calc(20% - 20px);
+    max-width: 200px;
+    margin-bottom: 20px;
+  }
+  
+  .nft-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .nft-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+  
+  .nft-info {
+    padding: 15px;
+  }
+  
+  .nft-info h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: var(--text-color);
+  }
+  
+  .nft-amount {
+    font-size: 14px;
+    color: var(--secondary-color);
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  
+  .modal-content h2 {
+    color: var(--text-color);
+    margin-bottom: 20px;
+  }
+  
+  .modal-content img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    margin-bottom: 20px;
+  }
+  
+  .sale-options > div {
+    margin-bottom: 20px;
+  }
+  
+  .sale-type {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .sale-type button {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--primary-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border-radius: 5px;
+  }
+  
+  .sale-type button.active {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+  }
+  
+  .price-input {
+    margin-top: 45px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  
+  .amount-input, .duration-input {
+    margin-bottom: 20px;
+  }
+  
+  .price-input label, .amount-input label {
+    display: block;
+    text-align: center;
+    margin-bottom: 5px;
+    color: var(--text-color);
+  }
+  
+  .price-input label {
+    position: absolute;
+    left: calc(80px + 20px);
+    right: 0;
+    top: -25px;
+  }
+  
+  .price-input-container, .amount-input-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .currency-select {
+    width: 90px;  /* Increased from 80px */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin-right: 15px;
+  }
+  
+  .price-input input[type="number"],
+  .amount-input input[type="number"] {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--input-border);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    text-align: center;
+    -webkit-appearance: textfield;
+    appearance: textfield;
+  }
+  
+  .price-input input[type="number"]::-webkit-inner-spin-button,
+  .price-input input[type="number"]::-webkit-outer-spin-button,
+  .amount-input input[type="number"]::-webkit-inner-spin-button,
+  .amount-input input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  .price-adjust,
+  .amount-adjust {
+    width: 40px;
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .price-adjust:hover:not(:disabled),
+  .amount-adjust:hover:not(:disabled) {
+    background-color: var(--primary-color-hover);
+  }
+  
+  .price-adjust:disabled,
+  .amount-adjust:disabled {
+    background-color: var(--input-border);
+    cursor: not-allowed;
+  }
+  
+  .price-adjust:first-of-type,
+  .amount-adjust:first-of-type {
+    border-radius: 5px 0 0 5px;
+  }
+  
+  .price-input input[type="number"],
+  .amount-input input[type="number"] {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .price-adjust:last-of-type,
+  .amount-adjust:last-of-type {
+    border-radius: 0 5px 5px 0;
+  }
+  
+  .duration-input {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .duration-select,
+  .end-date-input {
+    width: 48%;
+  }
+  
+  .duration-select label,
+  .end-date-input label {
+    display: block;
+    text-align: center;
+    margin-bottom: 5px;
+    color: var(--text-color);
+  }
+  
+  .duration-select select,
+  .end-date-input input {
+    width: 100%;
+    height: 40px;
+    padding: 0 10px;
+    font-size: 16px;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    box-sizing: border-box;
+  }
+  
+  .list-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .list-button:hover {
+    background-color: var(--primary-color-hover);
+  }
+  
+  .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    color: var(--accent-color);
+    transition: all 0.3s ease;
+    padding: 0;
+    line-height: 1;
+  }
+  
+  .close-modal::before {
+    content: "×";
+  }
+  
+  .close-modal:hover {
+    color: var(--bg-color);
+  }
+  
+  .close-modal:hover::before {
+    content: "×";
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    font-size: 24px;
+  }
+  
+  .loading {
+    text-align: center;
+    font-size: 18px;
+    color: var(--text-color);
+    margin-top: 50px;
+  }
+  
+  .no-nfts-message {
+    text-align: center;
+    padding: 40px;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    margin: 20px 0;
+  }
+  
+  .mint-link {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .mint-link:hover {
+    background-color: var(--primary-color-hover);
+  }
+  
+  @media (max-width: 1024px) {
+    .nft-card {
+      width: calc(25% - 20px);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .nft-card {
+      width: calc(33.333% - 20px);
+    }
+    
+    .duration-input {
+      flex-direction: column;
+    }
+    
+    .duration-select,
+    .end-date-input {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .nft-card {
+      width: calc(50% - 20px);
+    }
+    
+    .modal-content {
+      padding: 20px;
+    }
+  }
