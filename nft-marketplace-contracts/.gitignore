@@ -36,3 +36,6 @@ docs/
 
 # Misc
 .DS_Store
+
+#Local deployment on Anvil
+**/broadcast/

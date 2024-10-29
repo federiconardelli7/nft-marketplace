@@ -1,25 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
-import "../src/NFTMarketplace.sol";
+import {Script, console2} from "forge-std/Script.sol";
+import {Marketplace} from "../src/Marketplace.sol";
 
 contract DeployMarketplace is Script {
-    function run() external {
-        // Read private key directly from environment
-        bytes32 pk = vm.envBytes32("PRIVATE_KEY");
-        uint256 deployerPrivateKey = uint256(pk);
-        
-        vm.startBroadcast(deployerPrivateKey);
-        
-        // Deploy the marketplace contract
-        NFTMarketplace marketplace = new NFTMarketplace();
-        
-        console.log("NFTMarketplace deployed to:", address(marketplace));
-        
+    function run() external returns (Marketplace) {
+        vm.startBroadcast();
+        Marketplace marketplace = new Marketplace();
         vm.stopBroadcast();
         
-        // Store the contract address in the environment for the ABI copy script
-        vm.setEnv("CONTRACT_ADDRESS", vm.toString(address(marketplace)));
+        console2.log("Marketplace deployed to: %s", address(marketplace));
+        
+        return marketplace;
     }
 }

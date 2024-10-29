@@ -1,49 +1,48 @@
-const fs = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
 
-async function copyABI() {
+// Paths to the compiled contract artifacts
+const NFT_ARTIFACT_PATH = path.join(__dirname, '../out/NFT.sol/NFT.json');
+const MARKETPLACE_ARTIFACT_PATH = path.join(__dirname, '../out/Marketplace.sol/Marketplace.json');
+
+// Paths where we want to copy the ABIs in the frontend
+const NFT_DESTINATION = path.join(__dirname, '../../nft-marketplace/src/contracts/NFT.json');
+const MARKETPLACE_DESTINATION = path.join(__dirname, '../../nft-marketplace/src/contracts/Marketplace.json');
+
+// Read environment variables
+const NFT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS;
+const MARKETPLACE_ADDRESS = process.env.MARKETPLACE_CONTRACT_ADDRESS;
+
+function copyABI(artifactPath, destinationPath, contractAddress) {
     try {
-        // Paths
-        const outDir = path.join(__dirname, '../out');
-        const frontendDir = path.join(__dirname, '../../nft-marketplace/src/contracts');
-
-        // Ensure the frontend contracts directory exists
-        await fs.ensureDir(frontendDir);
-
-        // Get the NFTMarketplace artifact
-        const artifactPath = path.join(outDir, 'NFTMarketplace.sol/NFTMarketplace.json');
+        // Read the artifact file
+        const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
         
-        if (!fs.existsSync(artifactPath)) {
-            console.error('Contract artifact not found. Please run forge build first.');
-            process.exit(1);
-        }
-
-        const artifact = require(artifactPath);
-
-        // Create frontend contract file
-        const frontendContract = {
-            abi: artifact.abi,
-            networks: {
-                80001: { // Polygon Amoy testnet
-                    address: process.env.CONTRACT_ADDRESS
-                }
-            }
+        // Create a new object with just the ABI and address
+        const contractData = {
+            address: contractAddress,
+            abi: artifact.abi
         };
 
-        // Write to frontend project
-        await fs.writeJSON(
-            path.join(frontendDir, 'NFTMarketplace.json'),
-            frontendContract,
-            { spaces: 2 }
+        // Create the destination directory if it doesn't exist
+        const dir = path.dirname(destinationPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        // Write the new JSON file
+        fs.writeFileSync(
+            destinationPath,
+            JSON.stringify(contractData, null, 2)
         );
 
-        console.log('✅ ABI copied successfully to frontend project!');
-        console.log('Contract address:', process.env.CONTRACT_ADDRESS);
+        console.log(`Successfully copied ABI to ${destinationPath}`);
     } catch (error) {
-        console.error('Error copying ABI:', error);
+        console.error(`Error copying ABI: ${error.message}`);
         process.exit(1);
     }
 }
 
-copyABI();
+// Copy both ABIs
+copyABI(NFT_ARTIFACT_PATH, NFT_DESTINATION, NFT_ADDRESS);
+copyABI(MARKETPLACE_ARTIFACT_PATH, MARKETPLACE_DESTINATION, MARKETPLACE_ADDRESS);
