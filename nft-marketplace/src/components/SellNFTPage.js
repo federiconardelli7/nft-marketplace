@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchUserNFTs, listNFTForSale, listNFTForAuction } from '../utils/contractInteraction';
+import { NFT_ADDRESS } from '../config/contracts';
 import './SellNFTPage.css';
 
 function SellNFTPage({ account }) {
@@ -30,6 +31,17 @@ function SellNFTPage({ account }) {
         console.log('Fetching NFTs for account:', account);
         const nfts = await fetchUserNFTs(account);
         console.log('Fetched NFTs:', nfts);
+        if (nfts.length > 0) {
+          const nftForLog = {
+            ...nfts[0],
+            balance: nfts[0].balance.toString(),
+            royaltyInfo: nfts[0].royaltyInfo ? {
+              ...nfts[0].royaltyInfo,
+              percentage: nfts[0].royaltyInfo.percentage.toString()
+            } : null
+          };
+          console.log('First NFT structure:', JSON.stringify(nftForLog, null, 2));
+        }
         setUserNFTs(nfts);
       } catch (error) {
         console.error('Error fetching NFTs:', error);
@@ -93,13 +105,13 @@ function SellNFTPage({ account }) {
 
   const handleAmountChange = (e) => {
     const newAmount = parseInt(e.target.value, 10);
-    if (!isNaN(newAmount) && newAmount >= 1 && newAmount <= selectedNFT.amount) {
+    if (!isNaN(newAmount) && newAmount >= 1 && newAmount <= parseInt(selectedNFT.available)) {
       setAmount(newAmount);
     }
   };
 
   const incrementAmount = () => {
-    if (amount < selectedNFT.amount) {
+    if (amount < parseInt(selectedNFT.available)) {
       setAmount(prevAmount => prevAmount + 1);
     }
   };
@@ -146,16 +158,35 @@ function SellNFTPage({ account }) {
   };
 
   const handleListNFT = async () => {
-    if (!selectedNFT || !price || amount <= 0 || !endDate) return;
+    if (!selectedNFT || !price || amount <= 0 || !endDate) {
+      console.log('Validation failed:', { selectedNFT, price, amount, endDate });
+      return;
+    }
 
     try {
       if (saleType === 'fixed') {
-        await listNFTForSale(selectedNFT.id, price, amount, endDate, currency);
+        console.log('Selected NFT:', selectedNFT);
+        
+        console.log('Listing NFT with params:', {
+          nftContractAddress: NFT_ADDRESS,
+          tokenId: selectedNFT.id,
+          amount,
+          price,
+          endDate
+        });
+
+        await listNFTForSale(
+          NFT_ADDRESS,
+          selectedNFT.id,
+          amount,
+          price,
+          endDate
+        );
+        alert('NFT listed successfully');
+        handleCloseModal();
       } else {
         await listNFTForAuction(selectedNFT.id, price, endDate, amount, currency);
       }
-      alert('NFT listed successfully');
-      handleCloseModal();
     } catch (error) {
       console.error('Error listing NFT:', error);
       alert('Error listing NFT. Please try again.');
@@ -187,18 +218,7 @@ function SellNFTPage({ account }) {
       />
       <div className="nft-info">
         <h3>{nft.name}</h3>
-        {/* <p className="nft-balance">You own: {nft.balance}</p> */}
-        <p className="nft-amount">Available: {nft.amount}/{nft.supply}</p>
-        {/* <p className="nft-creator">
-          {nft.creator.toLowerCase() === account.toLowerCase() 
-            ? 'Created by you'
-            : nft.seller.toLowerCase() === account.toLowerCase()
-              ? 'Listed by you'
-              : 'Owned by you'}
-        </p> */}
-        {/* {nft.price !== "0" && (
-          <p className="nft-price">Current Price: {nft.price} MATIC</p>
-        )} */}
+        <p className="nft-quantity">Available: {nft.available}/{nft.mintInfo.originalAmount}</p>
       </div>
     </div>
   );
@@ -230,7 +250,7 @@ function SellNFTPage({ account }) {
             <h2>List {selectedNFT.name} for Sale</h2>
             <img src={selectedNFT.image || "https://via.placeholder.com/150"} alt={selectedNFT.name} />
             <p className="nft-description">{selectedNFT.description}</p>
-            <p className="nft-quantity">Available quantity: {selectedNFT.amount}</p>
+            <p className="nft-quantity">Available quantity: {selectedNFT.available}/{selectedNFT.mintInfo.originalAmount}</p>
             <div className="sale-options">
               <div className="sale-type">
                 <button
@@ -287,12 +307,12 @@ function SellNFTPage({ account }) {
                     value={amount}
                     onChange={handleAmountChange}
                     min="1"
-                    max={selectedNFT.amount}
+                    max={selectedNFT.available}
                   />
                   <button 
                     className="amount-adjust" 
                     onClick={incrementAmount}
-                    disabled={amount >= selectedNFT.amount}
+                    disabled={amount >= selectedNFT.available}
                   >
                     +
                   </button>

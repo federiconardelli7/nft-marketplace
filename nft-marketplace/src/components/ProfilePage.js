@@ -151,13 +151,13 @@ function ProfilePage({ account }) {
 
   const handleAmountChange = (e) => {
     const newAmount = parseInt(e.target.value, 10);
-    if (!isNaN(newAmount) && newAmount >= 1 && newAmount <= selectedNFT.amount) {
+    if (!isNaN(newAmount) && newAmount >= 1 && newAmount <= parseInt(selectedNFT.available)) {
       setAmount(newAmount);
     }
   };
 
   const incrementAmount = () => {
-    if (amount < selectedNFT.amount) {
+    if (amount < selectedNFT.available) {
       setAmount(prevAmount => prevAmount + 1);
     }
   };
@@ -545,7 +545,7 @@ function ProfilePage({ account }) {
                 <div className="nft-grid">
                   {userNFTs.length > 0 ? (
                     userNFTs.map((nft) => (
-                      <div key={nft.tokenId} className="nft-item" onClick={() => handleNFTClick(nft)}>
+                      <div key={nft.id} className="nft-item" onClick={() => handleNFTClick(nft)}>
                         <img 
                           src={nft.image} 
                           alt={nft.name} 
@@ -556,7 +556,12 @@ function ProfilePage({ account }) {
                         />
                         <div className="nft-info">
                           <h3>{nft.name}</h3>
-                          <p className="nft-amount">Available: {nft.amount}/{nft.supply}</p>
+                          <p className="nft-amount">
+                            Available: {nft.available} of {nft.mintInfo.originalAmount}
+                          </p>
+                          {nft.listing && (
+                            <p>Listed: {nft.listing.amount} for {nft.listing.price} MATIC</p>
+                          )}
                         </div>
                       </div>
                     ))
@@ -580,8 +585,8 @@ function ProfilePage({ account }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {activities.map((activity, index) => (
-                          <tr key={index}>
+                        {activities.map((activity) => (
+                          <tr key={`${activity.transaction_hash}-${activity.token_id}-${activity.activity_type}`}>
                             <td>
                               <span className={`activity-type ${activity.activity_type.toLowerCase()}`}>
                                 {activity.activity_type}
@@ -620,7 +625,9 @@ function ProfilePage({ account }) {
               <h2>List {selectedNFT.name} for Sale</h2>
               <img src={selectedNFT.image || "https://via.placeholder.com/150"} alt={selectedNFT.name} />
               <p className="nft-description">{selectedNFT.description}</p>
-              <p className="nft-quantity">Available quantity: {selectedNFT.amount}</p>
+              <p className="nft-quantity">
+                Available quantity: {selectedNFT.available} of {selectedNFT.mintInfo.originalAmount}
+              </p>
               <div className="sale-options">
                 <div className="sale-type">
                   <button
@@ -679,12 +686,12 @@ function ProfilePage({ account }) {
                       value={amount}
                       onChange={handleAmountChange}
                       min="1"
-                      max={selectedNFT.amount}
+                      max={selectedNFT.available}
                     />
                     <button 
                       className="amount-adjust" 
                       onClick={incrementAmount}
-                      disabled={amount >= selectedNFT.amount}
+                      disabled={amount >= selectedNFT.available}
                     >
                       +
                     </button>

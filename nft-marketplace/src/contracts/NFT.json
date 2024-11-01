@@ -1,14 +1,9 @@
 {
+  "address": "0xb72Ce289da16158ac10429C202BA6cc5eB4B7a0F",
   "abi": [
     {
       "type": "constructor",
-      "inputs": [
-        {
-          "name": "baseURI",
-          "type": "string",
-          "internalType": "string"
-        }
-      ],
+      "inputs": [],
       "stateMutability": "nonpayable"
     },
     {
@@ -55,6 +50,107 @@
           "name": "",
           "type": "uint256[]",
           "internalType": "uint256[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "exists",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getAvailableBalance",
+      "inputs": [
+        {
+          "name": "owner",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getTokenInfo",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "creator",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "initialSupply",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "currentSupply",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "availableSupply",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "tokenURI",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getTokenSupply",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
         }
       ],
       "stateMutability": "view"
@@ -111,6 +207,25 @@
         }
       ],
       "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "minters",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
     },
     {
       "type": "function",
@@ -266,6 +381,38 @@
     },
     {
       "type": "function",
+      "name": "totalSupply",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalSupply",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "transferOwnership",
       "inputs": [
         {
@@ -353,7 +500,7 @@
         {
           "name": "creator",
           "type": "address",
-          "indexed": false,
+          "indexed": true,
           "internalType": "address"
         },
         {
@@ -361,6 +508,12 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
+        },
+        {
+          "name": "tokenURI",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
         },
         {
           "name": "royaltyPercentage",

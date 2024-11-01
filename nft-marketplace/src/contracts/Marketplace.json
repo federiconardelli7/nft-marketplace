@@ -1,4 +1,5 @@
 {
+  "address": "0x3abcDEB1A2Ac532F889f8FB51a1f24C341978E12",
   "abi": [
     {
       "type": "constructor",
@@ -7,20 +8,7 @@
     },
     {
       "type": "function",
-      "name": "LISTING_FEE",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint256",
-          "internalType": "uint256"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "buyMarketItem",
+      "name": "buyToken",
       "inputs": [
         {
           "name": "marketItemId",
@@ -38,37 +26,16 @@
     },
     {
       "type": "function",
-      "name": "createMarketItem",
+      "name": "cancelListing",
       "inputs": [
         {
-          "name": "nftContract",
-          "type": "address",
-          "internalType": "address"
-        },
-        {
-          "name": "tokenId",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "supply",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "price",
+          "name": "marketItemId",
           "type": "uint256",
           "internalType": "uint256"
         }
       ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint256",
-          "internalType": "uint256"
-        }
-      ],
-      "stateMutability": "payable"
+      "outputs": [],
+      "stateMutability": "nonpayable"
     },
     {
       "type": "function",
@@ -81,7 +48,7 @@
           "internalType": "struct Marketplace.MarketItem[]",
           "components": [
             {
-              "name": "tokenId",
+              "name": "marketItemId",
               "type": "uint256",
               "internalType": "uint256"
             },
@@ -91,9 +58,9 @@
               "internalType": "address"
             },
             {
-              "name": "creator",
-              "type": "address",
-              "internalType": "address payable"
+              "name": "tokenId",
+              "type": "uint256",
+              "internalType": "uint256"
             },
             {
               "name": "seller",
@@ -106,12 +73,17 @@
               "internalType": "uint256"
             },
             {
-              "name": "supply",
+              "name": "amount",
               "type": "uint256",
               "internalType": "uint256"
             },
             {
-              "name": "remainingSupply",
+              "name": "remainingAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "endTime",
               "type": "uint256",
               "internalType": "uint256"
             },
@@ -124,6 +96,105 @@
         }
       ],
       "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMarketItem",
+      "inputs": [
+        {
+          "name": "marketItemId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct Marketplace.MarketItem",
+          "components": [
+            {
+              "name": "marketItemId",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "nftContract",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "tokenId",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "seller",
+              "type": "address",
+              "internalType": "address payable"
+            },
+            {
+              "name": "price",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "amount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "remainingAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "endTime",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "active",
+              "type": "bool",
+              "internalType": "bool"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "listToken",
+      "inputs": [
+        {
+          "name": "nftContract",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "endTime",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
     },
     {
       "type": "function",
@@ -218,8 +289,34 @@
     },
     {
       "type": "function",
+      "name": "platformFeePercentage",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "renounceOwnership",
       "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setPlatformFee",
+      "inputs": [
+        {
+          "name": "newFeePercentage",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
       "outputs": [],
       "stateMutability": "nonpayable"
     },
@@ -256,24 +353,11 @@
       "stateMutability": "nonpayable"
     },
     {
-      "type": "function",
-      "name": "withdraw",
-      "inputs": [],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
       "type": "event",
       "name": "MarketItemCreated",
       "inputs": [
         {
           "name": "marketItemId",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "tokenId",
           "type": "uint256",
           "indexed": true,
           "internalType": "uint256"
@@ -285,10 +369,10 @@
           "internalType": "address"
         },
         {
-          "name": "creator",
-          "type": "address",
-          "indexed": false,
-          "internalType": "address"
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
         },
         {
           "name": "seller",
@@ -303,7 +387,13 @@
           "internalType": "uint256"
         },
         {
-          "name": "supply",
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "endTime",
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
@@ -322,16 +412,34 @@
           "internalType": "uint256"
         },
         {
+          "name": "nftContract",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
           "name": "tokenId",
           "type": "uint256",
           "indexed": true,
           "internalType": "uint256"
         },
         {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
           "name": "buyer",
           "type": "address",
           "indexed": false,
           "internalType": "address"
+        },
+        {
+          "name": "price",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
         },
         {
           "name": "amount",

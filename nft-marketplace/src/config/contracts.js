@@ -1,4 +1,29 @@
-import NFTMarketplaceJSON from '../contracts/NFTMarketplace.json';
+import NFTJson from '../contracts/NFT.json';
+import MarketplaceJson from '../contracts/Marketplace.json';
+
+// Import contract addresses from environment variables
+const NFT_CONTRACT_ADDRESS = process.env.REACT_APP_NFT_CONTRACT_ADDRESS;
+const MARKETPLACE_CONTRACT_ADDRESS = process.env.REACT_APP_MARKETPLACE_CONTRACT_ADDRESS;
+
+// Export contract ABIs and addresses
+export const NFT_ABI = NFTJson.abi;
+export const NFT_ADDRESS = NFT_CONTRACT_ADDRESS;
+
+export const MARKETPLACE_ABI = MarketplaceJson.abi;
+export const MARKETPLACE_ADDRESS = MARKETPLACE_CONTRACT_ADDRESS;
+
+// Add debug logs
+console.log('NFT Contract JSON:', {
+  abi: NFTJson.abi ? 'Present' : 'Missing',
+  address: NFTJson.address,
+  raw: NFTJson
+});
+
+console.log('Marketplace Contract JSON:', {
+  abi: MarketplaceJson.abi ? 'Present' : 'Missing',
+  address: MarketplaceJson.address,
+  raw: MarketplaceJson
+});
 
 // Network IDs
 export const NETWORKS = {
@@ -26,12 +51,8 @@ export const getCurrentNetwork = () => {
 // Get contract address for current network
 export const getContractAddress = () => {
   const network = getCurrentNetwork();
-  return NFTMarketplaceJSON.networks[network].address;
+  return NFTJson.networks[network].address;
 };
-
-// Export contract ABI and address directly
-export const NFT_MARKETPLACE_ABI = NFTMarketplaceJSON.abi;
-export const NFT_MARKETPLACE_ADDRESS = getContractAddress();
 
 // Helper function to add Amoy network to MetaMask
 export const addAmoyNetwork = async () => {

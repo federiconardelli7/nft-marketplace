@@ -5,9 +5,9 @@ import {Script, console2} from "forge-std/Script.sol";
 import {NFT} from "../src/NFT.sol";
 
 contract DeployNFT is Script {
-    function run() external returns (NFT) {
+    function run() public returns (NFT) {
         vm.startBroadcast();
-        NFT nft = new NFT("ipfs://");
+        NFT nft = new NFT();
         vm.stopBroadcast();
         
         // Add this line to match the expected output format

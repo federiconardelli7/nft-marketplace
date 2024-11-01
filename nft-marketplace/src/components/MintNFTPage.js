@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ethers } from 'ethers';
-import ipfsService from '../services/ipfsService';
+import { uploadFile, uploadMetadata, verifyCredentials } from '../services/ipfsService';
 import { api } from '../services/api';
 
 import { 
-  NFT_MARKETPLACE_ADDRESS, 
-  NFT_MARKETPLACE_ABI,
+  // NFT_MARKETPLACE_ADDRESS, 
+  // NFT_MARKETPLACE_ABI,
+  NFT_ADDRESS, 
+  NFT_ABI,
   switchToAmoyNetwork 
 } from '../config/contracts';
 import './MintNFTPage.css';
+import { NFT } from '../schemas';
 
 function MintNFTPage({ account }) {
   const [name, setName] = useState('');
@@ -29,6 +32,7 @@ function MintNFTPage({ account }) {
   });
   const fileInputRef = useRef(null);
   const [maticPrice, setMaticPrice] = useState(null);
+  const [creatorRoyalty, setCreatorRoyalty] = useState(5); // Default 5%
 
   const fetchMaticPrice = async () => {
     try {
@@ -44,11 +48,16 @@ function MintNFTPage({ account }) {
     if (account) {
       updateCostEstimates();
       fetchMaticPrice();
+      verifyCredentials().then(valid => {
+        if (!valid) {
+          console.error('Pinata credentials are not valid');
+        }
+      });
     }
   }, [account]);
 
   const getExplorerLink = (txHash) => {
-    return `https://www.oklink.com/amoy/tx/${txHash}`;
+    return `https://amoy.polygonscan.com/tx/${txHash}`;
   };
 
   const checkSetup = async () => {
@@ -70,10 +79,9 @@ function MintNFTPage({ account }) {
       });
 
       const contract = await getContract();
-      const listingFee = await contract.LISTING_FEE();
       console.log('Contract Setup:', {
-        address: NFT_MARKETPLACE_ADDRESS,
-        listingFee: ethers.formatEther(listingFee)
+        address: NFT_ADDRESS,
+        contract: contract ? 'Connected' : 'Not Connected'
       });
 
       return true;
@@ -91,12 +99,22 @@ function MintNFTPage({ account }) {
         throw new Error("Please connect your wallet first");
       }
       
+      console.log('Contract setup:', {
+        NFT_ADDRESS,
+        NFT_ABI: NFT_ABI ? 'Present' : 'Missing',
+        account
+      });
+      
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
+      if (!NFT_ADDRESS) {
+        throw new Error("NFT contract address is not defined");
+      }
+      
       const contract = new ethers.Contract(
-        NFT_MARKETPLACE_ADDRESS,
-        NFT_MARKETPLACE_ABI,
+        NFT_ADDRESS,
+        NFT_ABI,
         signer
       );
 
@@ -109,133 +127,55 @@ function MintNFTPage({ account }) {
 
   const updateCostEstimates = async () => {
     try {
-      const contract = await getContract();
-      const listingFee = await contract.LISTING_FEE();
-      
-      // Get gas price using eth_gasPrice
-      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
-      const gasPriceDecimal = parseInt(gasPrice, 16);
-      const gasPriceGwei = ethers.formatUnits(gasPrice, 'gwei');
-  
-      // Set minimum price (0.001 MATIC) - same as in mintNFT
-      const priceInWei = ethers.parseEther("0.001");
-  
-      // Estimate gas for minimum transaction using the same parameter order as mintNFT
-      const gasEstimate = await contract.createToken.estimateGas(
-        1,  // supply
-        priceInWei,  // price
-        "ipfs://placeholder",  // metadata URI
-        { value: listingFee }  // transaction options with listing fee
-      );
-  
-      // Calculate total gas cost in POL
-      const gasCost = gasPriceDecimal * Number(gasEstimate.toString());
-      const gasFeeInPol = ethers.formatEther(gasCost.toString());
-      
-      // Set cost info with both POL and USD values
-      const listingFeeInPol = ethers.formatEther(listingFee);
-      const totalInPol = (Number(listingFeeInPol) + Number(gasFeeInPol)).toFixed(8);
-  
-      // Calculate USD values if maticPrice is available
-      const listingFeeUSD = maticPrice ? (Number(listingFeeInPol) * maticPrice).toFixed(2) : null;
-      const gasFeeUSD = maticPrice ? (Number(gasFeeInPol) * maticPrice).toFixed(2) : null;
-      const totalUSD = maticPrice ? (Number(totalInPol) * maticPrice).toFixed(2) : null;
-  
-      setCostInfo({
-        listingFee: listingFeeInPol,
-        listingFeeUSD,
-        estimatedGasFee: gasFeeInPol,
-        gasFeeUSD,
-        totalCost: totalInPol,
-        totalUSD,
-        gasPriceGwei
+      const gasPrice = await window.ethereum.request({ 
+        method: 'eth_gasPrice' 
       });
+      
+      // Convert hex gasPrice to decimal using ethers
+      const gasPriceGwei = ethers.formatUnits(gasPrice, 'gwei');
+      
+      // Estimate gas for minting (typical gas limit for ERC1155 mint)
+      const estimatedGas = 150000; // Conservative estimate for ERC1155 mint
+      const gasCostEther = ethers.formatEther(
+        ethers.parseUnits(gasPriceGwei, 'gwei') * estimatedGas
+      );
+      
+      setCostInfo({
+        gasPrice: gasPriceGwei,
+        estimatedGasFee: gasCostEther,
+        totalCost: gasCostEther // Total is just gas fee since minting is free
+      });
+
     } catch (error) {
-      console.error("Error getting cost estimates:", error);
+      console.error('Error estimating gas costs:', error);
+      setCostInfo({
+        gasPrice: '0',
+        estimatedGasFee: '0',
+        totalCost: '0'
+      });
     }
   };
 
   const mintNFT = async (metadataUrl, supply) => {
     try {
       const contract = await getContract();
+      const royaltyBasisPoints = creatorRoyalty * 100;
       
-      setMintingStatus('Initiating transaction...');
-      
-      // Get the listing fee from the contract
-      const listingFee = await contract.LISTING_FEE();
-      console.log('Listing Fee:', ethers.formatEther(listingFee), 'MATIC');
-      
-      // Set minimum price (0.001 MATIC)
-      const priceInWei = ethers.parseEther("0.001");
-      console.log('Price in Wei:', priceInWei.toString(), '(MATIC in Wei)');
-  
-      // Get gas price using eth_gasPrice
-      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
-      const gasPriceDecimal = parseInt(gasPrice, 16);
-      console.log('Gas Price:', ethers.formatUnits(gasPrice, 'gwei'), 'gwei');
-      
-      // Estimate gas
-      const gasEstimate = await contract.createToken.estimateGas(
-        supply, 
-        priceInWei,
-        metadataUrl,  // Add the metadata URL parameter
-        { value: listingFee }
+      const transaction = await contract.mint(
+        supply,
+        metadataUrl,
+        royaltyBasisPoints
       );
-      console.log('Estimated Gas:', gasEstimate.toString(), 'units');
-  
-      // Create token with explicit parameters
-      const transaction = await contract.createToken(
-        supply, 
-        priceInWei,
-        metadataUrl,  // Add the metadata URL parameter
-        {
-          value: listingFee,
-          gasPrice: gasPrice,
-          gasLimit: Math.floor(Number(gasEstimate) * 1.5)
-        }
-      );
-  
-      setMintingStatus('Transaction submitted. Waiting for confirmation...');
-      console.log('Transaction submitted:', transaction.hash);
-      
+
       const receipt = await transaction.wait();
-      console.log('Transaction confirmed:', receipt);
-      
-      const event = receipt.logs.find(log => log.eventName === 'MarketItemCreated');
-      const tokenId = event ? event.args.tokenId : null;
-  
-      console.log('Token ID:', tokenId ? tokenId.toString() : 'Not found');
-  
+      setTransactionHash(receipt.hash);
+
       return {
-        success: true,
-        tokenId,
+        tokenId: receipt.logs[0].args[3], // Adjust based on your event structure
         transactionHash: receipt.hash
       };
     } catch (error) {
-      console.error("Detailed transaction error:", {
-        message: error.message,
-        code: error.code,
-        data: error.data,
-        transaction: error.transaction,
-        reason: error.reason,
-        method: error.method,
-        transaction: {
-          to: NFT_MARKETPLACE_ADDRESS,
-          value: error.transaction?.value?.toString(),
-          data: error.transaction?.data,
-          gasLimit: error.transaction?.gasLimit?.toString()
-        }
-      });
-  
-      if (error.code === 'INSUFFICIENT_FUNDS') {
-        setMintingStatus('Failed: Insufficient funds for transaction');
-      } else if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
-        setMintingStatus('Failed: Could not estimate gas limit');
-      } else {
-        setMintingStatus('Failed to mint NFT. Please check console for details.');
-      }
-      
-      throw error;
+      throw new Error('Transaction failed. Please try again.');
     }
   };
 
@@ -322,80 +262,70 @@ function MintNFTPage({ account }) {
     setTransactionHash(null);
   };
 
-  const handleSuccessfulMint = async (mintResult, metadata) => {
+  const handleSuccessfulMint = async (mintResult, urls) => {
     try {
-      console.log('Minting successful, saving to database...');
-  
-      // Create or get user
-      let user = await api.getUser(account);
-      if (!user) {
-        user = await api.createUser({
-          wallet_address: account
-        });
-      }
-  
-      // Create NFT record
-      await api.createNFT({
+      console.log('Mint result:', mintResult);
+      
+      const nftData = {
         token_id: mintResult.tokenId.toString(),
-        metadata: metadata,
-        creator_address: account,
-        current_owner: account,
+        metadata: {
+          name,
+          description,
+          image: urls.imageUrl,
+          attributes: traits.filter(trait => trait.type && trait.value).map(trait => ({
+            trait_type: trait.type,
+            value: trait.value
+          }))
+        },
+        creator_address: account.toLowerCase(),
+        current_owner: account.toLowerCase(),
         total_supply: supply,
         available_amount: supply
-      });
-  
-      // Log minting activity
-      await api.logActivity({
-        wallet_address: account,
+      };
+
+      console.log('Saving NFT data:', nftData);
+      await api.createNFT(nftData);
+
+      // Create mint activity record
+      const activityData = {
+        wallet_address: account.toLowerCase(),
         activity_type: 'MINT',
         token_id: mintResult.tokenId.toString(),
         amount: supply,
         transaction_hash: mintResult.transactionHash
-      });
-  
+      };
+
+      await api.createActivity(activityData);
+      
+      resetForm();
+      setMintingStatus('success');
     } catch (error) {
-      console.error('Error saving mint data:', error);
-      // Don't throw the error - we still want to show success for the blockchain transaction
+      console.error('Error saving NFT data:', error);
+      setMintingStatus('warning');
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!account) {
-      setUploadError('Please connect your wallet first');
-      return;
-    }
-
-    // Check setup first
-    const isSetupOk = await checkSetup();
-    if (!isSetupOk) {
-      setUploadError('Network or contract setup issue. Please check console.');
-      return;
-    }
-
-    if (!imageFile) {
-      setUploadError('Please select an image');
-      return;
-    }
-
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setIsUploading(true);
     setUploadError(null);
-    setUploadProgress('Uploading image to IPFS...');
+    setMintingStatus('Starting minting process...');
 
     try {
-      // First upload the image to IPFS
-      const imageUploadResult = await ipfsService.uploadFile(imageFile);
-      if (!imageUploadResult.success) {
-        throw new Error(imageUploadResult.message || 'Failed to upload image');
+      if (!imageFile) {
+        throw new Error('Please select an image');
       }
 
-      setUploadProgress('Creating metadata...');
+      setMintingStatus('Uploading image to IPFS...');
+      const imageUploadResult = await uploadFile(imageFile);
+      if (!imageUploadResult.success) {
+        throw new Error('Failed to upload image to IPFS');
+      }
 
-      // Create metadata
+      setMintingStatus('Creating metadata...');
       const metadata = {
-        name,
-        description,
+        name: name,
+        description: description,
         image: imageUploadResult.pinataUrl,
         attributes: traits.filter(trait => trait.type && trait.value).map(trait => ({
           trait_type: trait.type,
@@ -403,43 +333,35 @@ function MintNFTPage({ account }) {
         }))
       };
 
-      setUploadProgress('Uploading metadata to IPFS...');
-
-      // Upload metadata to IPFS
-      const metadataUploadResult = await ipfsService.uploadMetadata(metadata);
+      setMintingStatus('Uploading metadata to IPFS...');
+      const metadataUploadResult = await uploadMetadata(metadata);
       if (!metadataUploadResult.success) {
-        throw new Error(metadataUploadResult.message || 'Failed to upload metadata');
+        throw new Error('Failed to upload metadata to IPFS');
       }
 
-      setUploadProgress('Minting NFT...');
+      setMintingStatus('Confirming transaction...');
+      const mintResult = await mintNFT(
+        metadataUploadResult.pinataUrl,
+        supply
+      );
 
-      // Mint the NFT using the metadata URL
-      const mintResult = await mintNFT(metadataUploadResult.pinataUrl, supply);
+      setMintingStatus('NFT minted successfully!');
+      handleSuccessfulMint(mintResult, {
+        imageUrl: imageUploadResult.pinataUrl,
+        metadataUrl: metadataUploadResult.pinataUrl
+      });
 
-      // Save to database
-      await handleSuccessfulMint(mintResult, metadata);
-
-      // Set transaction hash for the explorer link
-      setTransactionHash(mintResult.transactionHash);
-
-      // Clear form after successful minting
-      resetForm();
-      setMintingStatus(`NFT minted successfully!`);
-
-      // Log transaction details to console
-      console.log('=== NFT Minting Successful ===');
-      console.log('Transaction Hash:', mintResult.transactionHash);
-      console.log('Block Explorer:', getExplorerLink(mintResult.transactionHash));
-      console.log('IPFS Metadata URL:', metadataUploadResult.pinataUrl);
-      console.log('IPFS Image URL:', imageUploadResult.pinataUrl);
-      console.log('========================');
+      // Clear minting status after 15 seconds
+      setTimeout(() => {
+        setMintingStatus(null);
+        resetForm();
+      }, 15000);
 
     } catch (error) {
-      console.error('Error in NFT creation process:', error);
+      console.error('Minting failed:', error);
       setUploadError(error.message || 'Error creating NFT. Please try again.');
     } finally {
       setIsUploading(false);
-      setUploadProgress(null);
     }
   };
 
@@ -480,40 +402,6 @@ function MintNFTPage({ account }) {
         )}
         
         <form onSubmit={handleSubmit}>
-          {/* Add cost info display */}
-          {costInfo.listingFee && (
-            <div className="cost-info">
-                <h4>Minting Costs:</h4>
-                <div className="cost-item">
-                <span>Platform Fee:</span>
-                <span>
-                    {costInfo.listingFee} MATIC
-                    {maticPrice && <span className="usd-value">
-                    (${(Number(costInfo.listingFee) * maticPrice).toFixed(2)})
-                    </span>}
-                </span>
-                </div>
-                <div className="cost-item">
-                <span>Estimated Gas Fee:</span>
-                <span>
-                    ~{costInfo.estimatedGasFee} MATIC
-                    {maticPrice && <span className="usd-value">
-                    (${(Number(costInfo.estimatedGasFee) * maticPrice).toFixed(2)})
-                    </span>}
-                </span>
-                </div>
-                <div className="cost-item total">
-                <span>Total Estimated Cost:</span>
-                <span>
-                    ~{costInfo.totalCost} MATIC
-                    {maticPrice && <span className="usd-value">
-                    (${(Number(costInfo.totalCost) * maticPrice).toFixed(2)})
-                    </span>}
-                </span>
-                </div>
-            </div>
-          )}
-        
           <div 
             className={`image-upload ${isDragging ? 'dragging' : ''} ${isUploading ? 'uploading' : ''}`}
             onClick={() => fileInputRef.current.click()}
@@ -565,16 +453,59 @@ function MintNFTPage({ account }) {
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-group supply-group">
             <label htmlFor="supply">Supply</label>
-            <input
-              type="number"
-              id="supply"
-              value={supply}
-              onChange={(e) => setSupply(parseInt(e.target.value))}
-              min="1"
-              required
-            />
+            <div className="supply-input-container">
+              <button 
+                type="button" 
+                className="supply-btn minus"
+                onClick={() => setSupply(prev => Math.max(1, prev - 1))}
+                disabled={supply <= 1}
+              >
+                -
+              </button>
+              <input
+                type="number"
+                id="supply"
+                value={supply}
+                onChange={(e) => setSupply(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                required
+              />
+              <button 
+                type="button" 
+                className="supply-btn plus"
+                onClick={() => setSupply(prev => prev + 1)}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="royalties-section">
+            <h4>Royalties</h4>
+            <div className="royalties-container">
+              <div className="royalty-item">
+                <label htmlFor="creatorRoyalty">Creator</label>
+                <select 
+                  id="creatorRoyalty"
+                  value={creatorRoyalty}
+                  onChange={(e) => setCreatorRoyalty(parseInt(e.target.value))}
+                  className="royalty-input"
+                >
+                  {[...Array(5)].map((_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {i + 1}%
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="royalty-item">
+                <label>Marketplace</label>
+                <div className="royalty-input disabled">1%</div>
+              </div>
+            </div>
           </div>
 
           <div className="traits-section">

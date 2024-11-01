@@ -37,6 +37,7 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 20px;
+    padding: 20px;
   }
   
   .nft-card {
@@ -46,9 +47,11 @@
     box-shadow: var(--card-shadow);
     transition: transform 0.3s ease;
     cursor: pointer;
-    width: calc(20% - 20px);
-    max-width: 200px;
-    margin-bottom: 20px;
+    width: 200px;
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
   }
   
   .nft-card:hover {
@@ -57,23 +60,34 @@
   
   .nft-card img {
     width: 100%;
-    height: 180px;
+    height: 200px;
     object-fit: cover;
   }
   
   .nft-info {
-    padding: 15px;
+    padding: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: var(--card-bg);
   }
   
   .nft-info h3 {
-    margin: 0 0 10px;
+    margin: 0;
     font-size: 16px;
     color: var(--text-color);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .nft-amount {
     font-size: 14px;
-    color: var(--secondary-color);
+    color: var(--text-color);
+    opacity: 0.7;
+    margin: 0;
   }
   
   .modal-overlay {

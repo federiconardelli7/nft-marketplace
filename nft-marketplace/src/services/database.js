@@ -166,11 +166,34 @@ class DatabaseService {
   async createNFT(nftData) {
     console.log('Attempting to create NFT:', nftData);
     try {
+      // First check if NFT already exists
+      const existingNFT = await NFT.findOne({ token_id: nftData.token_id });
+      
+      if (existingNFT) {
+        console.log('NFT already exists, updating instead:', existingNFT);
+        // Update the existing NFT with new data
+        const updatedNFT = await NFT.findOneAndUpdate(
+          { token_id: nftData.token_id },
+          {
+            $set: {
+              metadata: nftData.metadata,
+              current_owner: nftData.current_owner,
+              total_supply: nftData.total_supply,
+              available_amount: nftData.available_amount,
+              updated_at: new Date()
+            }
+          },
+          { new: true }
+        );
+        return updatedNFT;
+      }
+
+      // If NFT doesn't exist, create new one
       const result = await NFT.create(nftData);
       console.log('NFT created successfully:', result);
       return result;
     } catch (error) {
-      console.error('Error creating NFT:', error);
+      console.error('Error creating/updating NFT:', error);
       throw error;
     }
   }

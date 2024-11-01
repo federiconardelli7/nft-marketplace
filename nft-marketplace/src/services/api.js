@@ -97,12 +97,41 @@ export const api = {
 
   // NFT operations
   async createNFT(nftData) {
-    const response = await fetch(`${API_BASE_URL}/nfts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formatData(nftData))
-    });
-    return response.json();
+    try {
+      const response = await fetch(`${API_BASE_URL}/nfts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formatData(nftData))
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('NFT creation error:', errorData);
+        
+        // If it's a duplicate key error, try updating instead
+        if (errorData.error && errorData.error.includes('duplicate key error')) {
+          console.log('Attempting to update existing NFT...');
+          const updateResponse = await fetch(`${API_BASE_URL}/nfts/${nftData.token_id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formatData(nftData))
+          });
+
+          if (!updateResponse.ok) {
+            throw new Error(`Failed to update NFT: ${updateResponse.status}`);
+          }
+
+          return await updateResponse.json();
+        }
+        
+        throw new Error(errorData.message || `Failed to create NFT: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating/updating NFT:', error);
+      throw error;
+    }
   },
 
   async getNFTsByOwner(walletAddress) {
@@ -123,5 +152,28 @@ export const api = {
   async getUserActivities(walletAddress) {
     const response = await fetch(`${API_BASE_URL}/activities/${walletAddress}`);
     return response.json();
+  },
+
+  async createActivity(activityData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Activity creation error:', errorData);
+        throw new Error(errorData.message || 'Failed to create activity record');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      throw error;
+    }
   }
 };
