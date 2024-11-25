@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, useNavigate } from 'react-router-dom';
-import { connectWallet } from './utils/contractInteraction';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
+import { connectWallet, fetchMarketItems } from './utils/contractInteraction';
 import MintNFTPage from './components/MintNFTPage';
 import MarketplacePage from './components/MarketplacePage';
 import ProfilePage from './components/ProfilePage';
@@ -16,7 +16,37 @@ function AppContent() {
   const [error, setError] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recentListings, setRecentListings] = useState([]);
+  const [loadingListings, setLoadingListings] = useState(false);
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const reloadListings = () => {
+    loadRecentListings();
+  };
+
+  const loadRecentListings = async () => {
+    try {
+      setLoadingListings(true);
+      const items = await fetchMarketItems();
+      
+      // Sort by newest first and take only the first 5
+      const sortedItems = items
+        .sort((a, b) => b.endTime - a.endTime)
+        .slice(0, 5);
+      
+      setRecentListings(sortedItems);
+    } catch (error) {
+      console.error('Error loading recent listings:', error);
+    } finally {
+      setLoadingListings(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRecentListings();
+  }, [location.pathname]);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode');
@@ -79,7 +109,7 @@ function AppContent() {
   return (
     <div className={`App ${darkMode ? 'dark-mode' : ''}`}>
       <header className="app-header">
-        <Link to="/" className="app-title-link">
+        <Link to="/" className="app-title-link" onClick={reloadListings}>
           <h1 className="app-title">NFT Marketplace</h1>
         </Link>
         <div className="header-controls">
@@ -135,18 +165,42 @@ function AppContent() {
               </p>
             </section>
 
-            <section className="featured-nfts">
-              <h2>Featured NFTs</h2>
-              <div className="nft-grid">
-                {[1, 2, 3, 4].map((item) => (
-                  <div key={item} className="nft-item">
-                    <div className="nft-image"></div>
-                    <h3>NFT #{item}</h3>
-                    <p>0.05 ETH</p>
-                    <button>View Details</button>
-                  </div>
-                ))}
-              </div>
+            <section className="recent-listings">
+              <h2>Recently Listed NFTs</h2>
+              {loadingListings ? (
+                <div className="loading-spinner" />
+              ) : (
+                <div className="nft-grid">
+                  {recentListings.length > 0 ? (
+                    recentListings.map((nft) => (
+                      <div key={nft.marketItemId} className="nft-item">
+                        <img 
+                          src={nft.image} 
+                          alt={nft.name}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
+                          }}
+                          className="nft-image"
+                        />
+                        <div className="nft-info">
+                          <h3>{nft.name}</h3>
+                          <p className="nft-price">{nft.price} MATIC</p>
+                          <p className="nft-amount">Available: {nft.remainingAmount} of {nft.amount}</p>
+                          <Link to="/marketplace">
+                            <button className="view-details-button">View in Marketplace</button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-listings">
+                      <p>No NFTs currently listed</p>
+                      <Link to="/mint" className="mint-link">Mint your first NFT</Link>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           </main>
         } />
