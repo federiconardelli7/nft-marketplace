@@ -208,74 +208,83 @@
   export async function buyNFT(marketItemId, price, amount = 1) {
     try {
       console.log('Buying NFT with params:', { marketItemId, price, amount });
-
+  
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const signerAddress = await signer.getAddress();
-
+  
       const marketplace = new ethers.Contract(
         MARKETPLACE_ADDRESS,
         MARKETPLACE_ABI,
         signer
       );
-
-      // Get gas estimate first
-      const gasEstimate = await marketplace.buyToken.estimateGas(
+  
+      // Calculate total price in wei
+      const totalValue = ethers.parseEther((Number(price) * Number(amount)).toString());
+  
+      console.log('Transaction value:', ethers.formatEther(totalValue), 'MATIC');
+  
+      // Create transaction with fixed gas settings for Polygon Amoy
+      const tx = await marketplace.buyToken(
         marketItemId,
         amount,
-        { value: ethers.parseEther(price.toString()) }
+        {
+          from: signerAddress,
+          value: totalValue,
+          gasLimit: ethers.toBigInt('300000'),
+          gasPrice: ethers.parseUnits('100', 'gwei')
+        }
       );
-
-      console.log('Gas estimate:', gasEstimate.toString());
-
-      // Add 20% buffer to gas estimate
-      const gasLimit = (gasEstimate * ethers.toBigInt(120)) / ethers.toBigInt(100);
-
-      const tx = {
-        from: signerAddress,
-        value: ethers.parseEther(price.toString()),
-        gasLimit
-      };
-
-      console.log('Transaction parameters:', {
-        marketItemId,
-        amount,
-        ...tx,
-        value: tx.value.toString(),
-        gasLimit: tx.gasLimit.toString()
-      });
-
-      const transaction = await marketplace.buyToken(marketItemId, amount, tx);
-      console.log('Transaction submitted:', transaction.hash);
-
-      const receipt = await transaction.wait();
+  
+      console.log('Transaction sent:', tx.hash);
+  
+      // Wait for confirmation and get receipt
+      const receipt = await tx.wait();
       console.log('Transaction confirmed:', receipt);
-
+  
       // Get the market item
       const marketItem = await marketplace.getMarketItem(marketItemId);
-
+  
       // Log activities
-      await api.createActivity({
-        wallet_address: signerAddress.toLowerCase(),
-        activity_type: 'BUY',
-        token_id: marketItem.tokenId.toString(),
-        amount: amount,
-        price: price,
-        transaction_hash: receipt.hash
-      });
-
-      await api.createActivity({
-        wallet_address: marketItem.seller.toLowerCase(),
-        activity_type: 'SELL',
-        token_id: marketItem.tokenId.toString(),
-        amount: amount,
-        price: price,
-        transaction_hash: receipt.hash
-      });
-
+      await Promise.all([
+        api.createActivity({
+          wallet_address: signerAddress.toLowerCase(),
+          activity_type: 'BUY',
+          token_id: marketItem.tokenId.toString(),
+          amount: amount,
+          price: price,
+          transaction_hash: receipt.hash
+        }),
+        api.createActivity({
+          wallet_address: marketItem.seller.toLowerCase(),
+          activity_type: 'SELL',
+          token_id: marketItem.tokenId.toString(),
+          amount: amount,
+          price: price,
+          transaction_hash: receipt.hash
+        })
+      ]);
+  
+      // Return the receipt directly
       return receipt;
+  
     } catch (error) {
-      console.error('Error buying NFT:', error);
+      console.error('Error details:', {
+        error,
+        code: error.code,
+        message: error.message,
+        data: error.data
+      });
+  
+      // Handle specific error cases
+      if (error.code === 'INSUFFICIENT_FUNDS') {
+        throw new Error('Insufficient funds to complete the purchase');
+      } else if (error.code === -32603) {
+        throw new Error('Transaction failed. Please make sure you have enough MATIC for gas fees');
+      } else if (error.reason) {
+        throw new Error(error.reason);
+      }
+  
       throw error;
     }
   }

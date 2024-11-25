@@ -52,34 +52,51 @@ function MarketplacePage({ account }) {
   const handlePurchaseConfirm = async () => {
     if (!selectedItem) return;
     
-    setIsBuying(true);
-    setBuyingError(null);
-    setTransactionHash(null);
-  
     try {
-      console.log('Starting purchase process...');
-      const tx = await buyNFT(selectedItem.marketItemId, selectedItem.price, purchaseAmount);
-      console.log('Purchase transaction:', tx);
-      
-      setTransactionHash(tx.hash);
-      
-      // Wait for transaction confirmation
-      await tx.wait();
-      
-      // Refresh the listings
-      await loadMarketItems();
-      
-      // Close modal after successful purchase
-      setShowPurchaseModal(false);
-      
-      // Show success message
-      alert('Purchase successful!');
-    } catch (err) {
-      console.error("Error buying NFT:", err);
-      setBuyingError(err.message || 'Failed to complete purchase. Please try again.');
+      setIsBuying(true);
+      setBuyingError(null);
+      setTransactionHash(null);
+  
+      // Get the transaction receipt from buyNFT
+      const receipt = await buyNFT(selectedItem.marketItemId, selectedItem.price, purchaseAmount);
+      console.log('Purchase transaction receipt:', receipt);
+  
+      // Set the transaction hash
+      if (receipt.hash) {
+        setTransactionHash(receipt.hash);
+      }
+  
+      // Show success message and refresh data after short delay
+      setTimeout(async () => {
+        try {
+          // Refresh the marketplace items
+          await loadMarketItems();
+          
+          // Show success message
+          alert('Purchase successful!');
+          
+          // Close modal and reset states
+          handleCloseModal();
+        } catch (error) {
+          console.error("Error refreshing data:", error);
+        }
+      }, 2000); // Wait 2 seconds before closing
+  
+    } catch (error) {
+      console.error("Error buying NFT:", error);
+      setBuyingError(error.message || 'Failed to complete purchase. Please try again.');
     } finally {
       setIsBuying(false);
     }
+  };
+  
+  // Add this function to handle modal closing and state reset
+  const handleCloseModal = () => {
+    setShowPurchaseModal(false);
+    setSelectedItem(null);
+    setPurchaseAmount(1);
+    setBuyingError(null);
+    setTransactionHash(null);
   };
 
   const calculateTotal = () => {
@@ -246,7 +263,7 @@ function MarketplacePage({ account }) {
                   <div className="nft-info">
                     <h3>{item.name}</h3>
                     <p className="nft-price">{item.price} MATIC</p>
-                    <p className="nft-amount">Available: {item.amount}</p>
+                    <p className="nft-amount">Available: {item.remainingAmount} of {item.amount}</p>
                     <p className="nft-seller">
                       Seller: {item.seller.substring(0, 6)}...{item.seller.substring(item.seller.length - 4)}
                     </p>
@@ -302,12 +319,12 @@ function MarketplacePage({ account }) {
                     Math.max(1, parseInt(e.target.value) || 1)
                   ))}
                   min="1"
-                  max={selectedItem.amount}
+                  max={selectedItem.remainingAmount}
                   disabled={isBuying}
                 />
                 <button 
-                  onClick={() => setPurchaseAmount(prev => Math.min(parseInt(selectedItem.amount), prev + 1))}
-                  disabled={purchaseAmount >= parseInt(selectedItem.amount) || isBuying}
+                  onClick={() => setPurchaseAmount(prev => Math.min(parseInt(selectedItem.remainingAmount), prev + 1))}
+                  disabled={purchaseAmount >= parseInt(selectedItem.remainingAmount) || isBuying}
                 >+</button>
               </div>
             </div>
