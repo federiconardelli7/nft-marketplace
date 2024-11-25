@@ -336,4 +336,15 @@ body, html {
   margin-top: auto;
 }
 
+.app-footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.app-footer a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
 /* Remove any conflicting styles for .app-footer if they exist */

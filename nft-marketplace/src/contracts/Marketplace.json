@@ -1,5 +1,5 @@
 {
-  "address": "0x3abcDEB1A2Ac532F889f8FB51a1f24C341978E12",
+  "address": "0x8A8121B1c91A6E695f15f40Bc2f9e3518E4a27e5",
   "abi": [
     {
       "type": "constructor",
@@ -27,6 +27,24 @@
     {
       "type": "function",
       "name": "cancelListing",
+      "inputs": [
+        {
+          "name": "marketItemId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "amountToRemove",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "cleanExpiredListing",
       "inputs": [
         {
           "name": "marketItemId",
@@ -159,6 +177,25 @@
               "internalType": "bool"
             }
           ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isExpired",
+      "inputs": [
+        {
+          "name": "marketItemId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
         }
       ],
       "stateMutability": "view"
@@ -309,19 +346,6 @@
     },
     {
       "type": "function",
-      "name": "setPlatformFee",
-      "inputs": [
-        {
-          "name": "newFeePercentage",
-          "type": "uint256",
-          "internalType": "uint256"
-        }
-      ],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
       "name": "supportsInterface",
       "inputs": [
         {
@@ -351,6 +375,43 @@
       ],
       "outputs": [],
       "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "MarketItemCancelled",
+      "inputs": [
+        {
+          "name": "marketItemId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "nftContract",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "remainingAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
     },
     {
       "type": "event",
@@ -394,6 +455,43 @@
         },
         {
           "name": "endTime",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MarketItemExpired",
+      "inputs": [
+        {
+          "name": "marketItemId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "nftContract",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "remainingAmount",
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"

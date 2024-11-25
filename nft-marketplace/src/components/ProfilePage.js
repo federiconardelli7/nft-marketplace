@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import { fetchUserNFTs, listNFTForSale, listNFTForAuction} from '../utils/contractInteraction';
+import { fetchUserNFTs, fetchListedNFTs, listNFTForSale, listNFTForAuction, verifyNFTState, handleExpiredListings} from '../utils/contractInteraction';
+import { 
+  NFT_ABI,
+  NFT_ADDRESS,
+  MARKETPLACE_ADDRESS, 
+  MARKETPLACE_ABI 
+} from '../config/contracts';
+import { ethers } from 'ethers';
 import { Link } from 'react-router-dom';
 import './ProfilePage.css';
 
 function ProfilePage({ account }) {
   const [userNFTs, setUserNFTs] = useState([]);
   const [activities, setActivities] = useState([]);
-  const [activeTab, setActiveTab] = useState('nfts');
+  const [activeTab, setActiveTab] = useState('owned'); 
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState("https://via.placeholder.com/100");
   const [isDragging, setIsDragging] = useState(false);
@@ -18,6 +25,8 @@ function ProfilePage({ account }) {
     twitter: '@cryptouser',
     instagram: '@cryptouser'
   });
+  const [error, setError] = useState(null);
+
   const bioTextareaRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,6 +39,22 @@ function ProfilePage({ account }) {
   const [duration, setDuration] = useState('1 day');
   const [endDate, setEndDate] = useState('');
   const [amount, setAmount] = useState(1);
+  const [stateCheckPassed, setStateCheckPassed] = useState(false);
+  const [listedNFTs, setListedNFTs] = useState([]);
+  const [selectedListedNFT, setSelectedListedNFT] = useState(null);
+  const [showListedModal, setShowListedModal] = useState(false);
+
+  const [isListing, setIsListing] = useState(false);
+  const [listingError, setListingError] = useState(null);
+  const [listingStatus, setListingStatus] = useState(null);
+  const [listingTxHash, setListingTxHash] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState(null);
+  const [removeStatus, setRemoveStatus] = useState(null);
+  const [removeTxHash, setRemoveTxHash] = useState(null);
+  const [needsApproval, setNeedsApproval] = useState(false);
+
+  const [nftContract, setNftContract] = useState(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -65,6 +90,50 @@ function ProfilePage({ account }) {
   useEffect(() => {
     setPrice(currency === 'MATIC' ? '0.001' : '1');
   }, [currency]);
+
+  // useEffect(() => {
+  //   if (!account) return;
+  
+  //   // Check for expired listings immediately
+  //   handleExpiredListings(account);
+  
+  //   // Then check every 5 minutes
+  //   const interval = setInterval(() => {
+  //     handleExpiredListings(account);
+  //   }, 5 * 60 * 1000);
+  
+  //   return () => clearInterval(interval);
+  // }, [account]);
+
+useEffect(() => {
+  const checkAndHandleExpiredListings = async () => {
+    if (!account) return;
+    
+    try {
+      // Handle any expired listings first
+      const hadExpiredListings = await handleExpiredListings(account);
+      
+      if (hadExpiredListings) {
+        // Refresh NFTs after handling expired listings
+        const [updatedNFTs, updatedListedNFTs] = await Promise.all([
+          fetchUserNFTs(account),
+          fetchListedNFTs(account)
+        ]);
+        
+        setUserNFTs(updatedNFTs);
+        setListedNFTs(updatedListedNFTs);
+      }
+    } catch (error) {
+      console.error('Error checking expired listings:', error);
+    }
+  };
+
+  // Check immediately and then every minute
+  checkAndHandleExpiredListings();
+  const interval = setInterval(checkAndHandleExpiredListings, 60 * 1000);
+
+  return () => clearInterval(interval);
+}, [account]);
 
   const handleEditProfile = () => {
     setIsEditing(true);
@@ -132,14 +201,143 @@ function ProfilePage({ account }) {
     }
   };
 
+  const checkApprovalStatus = async (tokenId) => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      
+      console.log('Checking approval status for:', {
+        owner: signerAddress,
+        operator: MARKETPLACE_ADDRESS,
+        NFT_ADDRESS
+      });
+      
+      const contract = new ethers.Contract(NFT_ADDRESS, NFT_ABI, signer);
+      
+      const isApproved = await contract.isApprovedForAll(
+        signerAddress,
+        MARKETPLACE_ADDRESS
+      );
+      
+      console.log('Approval status:', isApproved);
+      
+      setStateCheckPassed(isApproved);
+      setNeedsApproval(!isApproved);
+      setNftContract(contract);
+      
+      return isApproved;
+    } catch (error) {
+      console.error('Error checking approval status:', error);
+      setError(error.message);
+      return false;
+    }
+  };
+
+  const handleApproval = async () => {
+    if (!selectedNFT) return;
+    
+    try {
+      setError(null);
+      setListingStatus('Approving marketplace...');
+      
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(NFT_ADDRESS, NFT_ABI, signer);
+      
+      console.log('Sending approval transaction...');
+      const tx = await contract.setApprovalForAll(
+        MARKETPLACE_ADDRESS,
+        true,
+        {
+          gasLimit: ethers.toBigInt('300000'),
+          gasPrice: ethers.parseUnits('100', 'gwei')
+        }
+      );
+      
+      setListingStatus('Waiting for approval confirmation...');
+      console.log('Approval transaction sent:', tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log('Approval confirmed:', receipt);
+      
+      // Verify approval after transaction
+      const isApproved = await checkApprovalStatus(selectedNFT.id);
+      if (isApproved) {
+        setStateCheckPassed(true);
+        setNeedsApproval(false);
+        setListingStatus('Marketplace approved successfully!');
+        
+        // Clear status after delay
+        setTimeout(() => {
+          setListingStatus(null);
+        }, 3000);
+      } else {
+        throw new Error('Approval verification failed');
+      }
+      
+    } catch (error) {
+      console.error('Error during approval:', error);
+      setError(error.message || 'Failed to approve marketplace');
+      setStateCheckPassed(false);
+    }
+  };
+
+  useEffect(() => {
+    const verifyApproval = async () => {
+      if (account && selectedNFT) {
+        const isApproved = await checkApprovalStatus(selectedNFT.id);
+        setStateCheckPassed(isApproved);
+        setNeedsApproval(!isApproved);
+      }
+    };
+  
+    verifyApproval();
+  }, [account, selectedNFT]);
+  
+  const handleApprovalSuccess = async () => {
+    setStateCheckPassed(true);
+    setNeedsApproval(false);
+    
+    // Refresh NFT data after approval
+    if (account) {
+      const [updatedNFTs, updatedListedNFTs] = await Promise.all([
+        fetchUserNFTs(account),
+        fetchListedNFTs(account),
+      ]);
+      setUserNFTs(updatedNFTs);
+      setListedNFTs(updatedListedNFTs);
+    }
+  };
+
   // NFT Selling Modal Functions
-  const handleNFTClick = (nft) => {
+  const handleNFTClick = async (nft) => {
     setSelectedNFT(nft);
     setShowSellModal(true);
     setPrice('0.001');
     setDuration('1 day');
     updateEndDate('1 day');
     setAmount(1);
+    setError(null);
+    setListingError(null);
+    setListingStatus(null);
+  
+    try {
+      console.log('Checking NFT approval status...');
+      const isApproved = await checkApprovalStatus(nft.id);
+      console.log('NFT approval status:', isApproved);
+      
+      if (!isApproved) {
+        setNeedsApproval(true);
+        setStateCheckPassed(false);
+      } else {
+        setNeedsApproval(false);
+        setStateCheckPassed(true);
+      }
+    } catch (err) {
+      console.error('Error during NFT click handling:', err);
+      setError(err.message);
+    }
   };
 
   const handleCloseSellModal = () => {
@@ -147,6 +345,10 @@ function ProfilePage({ account }) {
     setSelectedNFT(null);
     setPrice('');
     setAmount(1);
+    setEndDate('');
+    setListingError(null);
+    setListingStatus(null);
+    setListingTxHash(null);
   };
 
   const handleAmountChange = (e) => {
@@ -230,20 +432,162 @@ function ProfilePage({ account }) {
     setCurrency(e.target.value);
   };
 
+  const handleListedNFTClick = (nft) => {
+    setSelectedListedNFT(nft);
+    setShowListedModal(true);
+  };
+  
+  const handleCloseListedModal = () => {
+    setShowListedModal(false);
+    setSelectedListedNFT(null);
+    setAmount(1);
+  };
+  
+  const handleRemoveListing = async (nft, amountToRemove) => {
+    if (isRemoving) return;
+    
+    try {
+      setIsRemoving(true);
+      setRemoveError(null);
+      setRemoveStatus('Starting remove process...');
+      setRemoveTxHash(null);
+  
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const marketplaceContract = new ethers.Contract(
+        MARKETPLACE_ADDRESS,
+        MARKETPLACE_ABI,
+        signer
+      );
+  
+      setRemoveStatus('Processing transaction...');
+  
+      // Pass both marketItemId and amountToRemove
+      const transaction = await marketplaceContract.cancelListing(
+        nft.listing.marketItemId,
+        amountToRemove,
+        { 
+          gasLimit: ethers.toBigInt('500000'),
+          gasPrice: ethers.parseUnits('100', 'gwei')
+        }
+      );
+  
+      setRemoveTxHash(transaction.hash);
+      setRemoveStatus('Waiting for confirmation...');
+      
+      const receipt = await transaction.wait();
+      console.log('Transaction confirmed:', receipt);
+  
+      // Log activity
+      await api.createActivity({
+        wallet_address: account.toLowerCase(),
+        activity_type: 'UNLIST',
+        token_id: nft.id,
+        amount: amountToRemove,
+        price: nft.listing.price,
+        transaction_hash: transaction.hash
+      });
+  
+      setRemoveStatus('Successfully removed from listing!');
+  
+      // Refresh data
+      const [updatedListedNFTs, updatedUserNFTs, updatedActivities] = await Promise.all([
+        fetchListedNFTs(account),
+        fetchUserNFTs(account),
+        api.getUserActivities(account)
+      ]);
+  
+      setListedNFTs(updatedListedNFTs);
+      setUserNFTs(updatedUserNFTs);
+      setActivities(updatedActivities);
+  
+      // Close modal after delay
+      setTimeout(() => {
+        handleCloseListedModal();
+        setRemoveStatus(null);
+        setRemoveTxHash(null);
+      }, 2000);
+  
+    } catch (error) {
+      console.error('Error removing from listing:', error);
+      setRemoveError(error.message || 'Error removing from listing. Please try again.');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   const handleListNFT = async () => {
     if (!selectedNFT || !price || amount <= 0 || !endDate) return;
-
+  
+    setIsListing(true);
+    setListingError(null);
+    setListingStatus('Starting listing process...');
+    setListingTxHash(null);
+  
     try {
-      if (saleType === 'fixed') {
-        await listNFTForSale(selectedNFT.id, price, amount, endDate, currency);
-      } else {
-        await listNFTForAuction(selectedNFT.id, price, endDate, amount, currency);
+      // Check NFT state before listing
+      const state = await verifyNFTState(selectedNFT.id, amount);
+      if (!state.hasEnough) {
+        throw new Error(`Insufficient balance. You have ${state.balance} but trying to list ${amount}`);
       }
-      alert('NFT listed successfully');
-      handleCloseSellModal();
+      if (!state.approved) {
+        throw new Error('Please approve the marketplace to handle your NFTs first');
+      }
+  
+      setListingStatus('Processing transaction...');
+  
+      // Call the listNFTForSale function
+      const response = await listNFTForSale(
+        NFT_ADDRESS,
+        selectedNFT.id,
+        amount,
+        price,
+        endDate
+      );
+  
+      // Check if response is a transaction or transaction response
+      const tx = response.wait ? response : await response;
+      setListingTxHash(tx.hash);
+      setListingStatus('Waiting for confirmation...');
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      
+      // Create activity record
+      await api.createActivity({
+        wallet_address: account.toLowerCase(),
+        activity_type: 'LIST',
+        token_id: selectedNFT.id,
+        amount: amount,
+        transaction_hash: tx.hash
+      });
+  
+      setListingStatus('NFT listed successfully!');
+  
+      // Refresh all data
+      const [updatedNFTs, updatedListedNFTs, updatedActivities] = await Promise.all([
+        fetchUserNFTs(account),
+        fetchListedNFTs(account),
+        api.getUserActivities(account)
+      ]);
+  
+      setUserNFTs(updatedNFTs);
+      setListedNFTs(updatedListedNFTs);
+      setActivities(updatedActivities);
+  
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        handleCloseSellModal();
+        setListingStatus(null);
+        setListingTxHash(null);
+      }, 2000);
+  
     } catch (error) {
       console.error('Error listing NFT:', error);
-      alert('Error listing NFT. Please try again.');
+      setListingError(error.message || 'Error listing NFT. Please try again.');
+    } finally {
+      setIsListing(false);
     }
   };
 
@@ -350,12 +694,26 @@ function ProfilePage({ account }) {
   useEffect(() => {
     const fetchUserData = async () => {
       if (!account) return;
-      
+      // Check for expired listings immediately
+      handleExpiredListings(account);
+      // Then check every minute instead of every 5 minutes
+      const interval = setInterval(() => {
+        handleExpiredListings(account);
+      }, 60 * 1000);  // Check every minute
+
       setIsLoading(true);
       try {
+        // Handle expired listings first
+        await handleExpiredListings(account);
+        // Fetch all user's NFTs
         const userNFTsData = await fetchUserNFTs(account);
         setUserNFTs(userNFTsData);
-
+  
+        // Fetch listed NFTs
+        const listedNFTsData = await fetchListedNFTs(account);
+        setListedNFTs(listedNFTsData);
+  
+        // Fetch activities
         const userActivities = await api.getUserActivities(account);
         setActivities(userActivities);
       } catch (error) {
@@ -364,18 +722,19 @@ function ProfilePage({ account }) {
         setIsLoading(false);
       }
     };
-
+  
     fetchUserData();
   }, [account]);
-
+  
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('default', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    });
+    }).format(date);
   };
 
   return (
@@ -522,26 +881,32 @@ function ProfilePage({ account }) {
         </div>
 
         <div className="profile-content">
-          <div className="tabs">
-            <button 
-              className={activeTab === 'nfts' ? 'active' : ''}
-              onClick={() => setActiveTab('nfts')}
-            >
-              NFTs
-            </button>
-            <button 
-              className={activeTab === 'activity' ? 'active' : ''}
-              onClick={() => setActiveTab('activity')}
-            >
-              Activity
-            </button>
-          </div>
+        <div className="tabs">
+          <button 
+            className={activeTab === 'owned' ? 'active' : ''}
+            onClick={() => setActiveTab('owned')}
+          >
+            NFT Owned
+          </button>
+          <button 
+            className={activeTab === 'listed' ? 'active' : ''}
+            onClick={() => setActiveTab('listed')}
+          >
+            NFT Listed
+          </button>
+          <button 
+            className={activeTab === 'activity' ? 'active' : ''}
+            onClick={() => setActiveTab('activity')}
+          >
+            Activity
+          </button>
+        </div>
 
-          {isLoading ? (
+        {isLoading ? (
             <div className="loading">Loading...</div>
           ) : (
             <>
-              {activeTab === 'nfts' && (
+              {activeTab === 'owned' && (
                 <div className="nft-grid">
                   {userNFTs.length > 0 ? (
                     userNFTs.map((nft) => (
@@ -571,29 +936,70 @@ function ProfilePage({ account }) {
                 </div>
               )}
 
-              {activeTab === 'activity' && (
-                <div className="activity-table">
-                  {activities.length > 0 ? (
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Type</th>
-                          <th>Token ID</th>
-                          <th>Amount</th>
-                          <th>Transaction</th>
-                          <th>Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activities.map((activity) => (
+              {activeTab === 'listed' && (
+                <div className="nft-grid">
+                  {listedNFTs.length > 0 ? (
+                    listedNFTs.map((nft) => (
+                      <div key={nft.id} className="nft-item" onClick={() => handleListedNFTClick(nft)}>
+                        <img 
+                          src={nft.image} 
+                          alt={nft.name} 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
+                          }}
+                        />
+                        <div className="nft-info">
+                          <h3>{nft.name}</h3>
+                          <div className="listing-details">
+                            <p>Price: {nft.listing.price} MATIC</p>
+                            <p>Amount Listed: {nft.listing.amount}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-items">No NFTs currently listed</div>
+                  )}
+                </div>
+              )}
+
+            {activeTab === 'activity' && (
+              <div className="activity-table">
+                {activities.length > 0 ? (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Action</th>
+                        <th>NFT</th>
+                        <th>Amount</th>
+                        <th>Price/Item</th>
+                        <th>Transaction</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activities.map((activity) => {
+                        const relatedNFT = userNFTs.find(nft => nft.id === activity.token_id);
+                        const nftName = relatedNFT ? relatedNFT.name : `NFT #${activity.token_id}`;
+                  
+                        return (
                           <tr key={`${activity.transaction_hash}-${activity.token_id}-${activity.activity_type}`}>
                             <td>
                               <span className={`activity-type ${activity.activity_type.toLowerCase()}`}>
                                 {activity.activity_type}
                               </span>
                             </td>
-                            <td>{activity.token_id}</td>
+                            <td>
+                              <div className="nft-info-cell">
+                                <span className="nft-name">{nftName}</span>
+                                <span className="token-id">ID: {activity.token_id}</span>
+                              </div>
+                            </td>
                             <td>{activity.amount}</td>
+                            <td className="price-cell">
+                              {activity.price && `${activity.price} MATIC`}
+                            </td>
                             <td>
                               <a 
                                 href={`https://amoy.polygonscan.com/tx/${activity.transaction_hash}`}
@@ -606,14 +1012,15 @@ function ProfilePage({ account }) {
                             </td>
                             <td>{formatDate(activity.created_at)}</td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="no-items">No activities found</div>
-                  )}
-                </div>
-              )}
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="no-items">No activities found</div>
+                )}
+              </div>
+            )}
             </>
           )}
         </div>
@@ -623,11 +1030,36 @@ function ProfilePage({ account }) {
           <div className="modal-overlay">
             <div className="modal-content">
               <h2>List {selectedNFT.name} for Sale</h2>
-              <img src={selectedNFT.image || "https://via.placeholder.com/150"} alt={selectedNFT.name} />
+              
+              <img 
+                src={selectedNFT.image || "https://via.placeholder.com/150"} 
+                alt={selectedNFT.name} 
+                className="modal-nft-image" 
+              />
+
               <p className="nft-description">{selectedNFT.description}</p>
               <p className="nft-quantity">
                 Available quantity: {selectedNFT.available} of {selectedNFT.mintInfo.originalAmount}
               </p>
+
+              {needsApproval && (
+                <div className="approval-section">
+                  <div className="approval-message">
+                    <p>
+                      Please approve the marketplace to handle your NFTs before listing.
+                    </p>
+                  </div>
+                  
+                  <button 
+                    className="approve-button" 
+                    onClick={handleApproval}
+                    disabled={isListing}
+                  >
+                    {isListing ? 'Processing...' : 'Approve Marketplace'}
+                  </button>
+                </div>
+              )}
+
               <div className="sale-options">
                 <div className="sale-type">
                   <button
@@ -715,7 +1147,7 @@ function ProfilePage({ account }) {
                           <option value="12 months">12 months</option>
                         </>
                       )}
-                      </select>
+                    </select>
                   </div>
                   <div className="end-date-input">
                     <label htmlFor="endDate">End Date</label>
@@ -728,11 +1160,174 @@ function ProfilePage({ account }) {
                   </div>
                 </div>
 
-                <button className="list-button" onClick={handleListNFT}>
-                  List for Sale
+                <button 
+                  className="list-button" 
+                  onClick={handleListNFT} 
+                  disabled={!stateCheckPassed || isListing}
+                >
+                  {isListing ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    'List for Sale'
+                  )}
                 </button>
+                
+                {listingError && (
+                  <div className="error-message">
+                    <p>{listingError}</p>
+                    <p className="error-hint">
+                      {listingError.includes('gas') ? 
+                        'Try increasing gas limit or waiting for network congestion to decrease.' : 
+                      listingError.includes('rejected') ? 
+                        'Transaction was rejected. Please try again.' : 
+                        'Please try again or contact support if the issue persists.'}
+                    </p>
+                  </div>
+                )}
+
+                {listingStatus && (
+                  <div className="transaction-info">
+                    <p>{listingStatus}</p>
+                    {listingTxHash && (
+                      <a 
+                        href={`https://amoy.polygonscan.com/tx/${listingTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="transaction-link"
+                      >
+                        View on Explorer
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
               <button className="close-modal" onClick={handleCloseSellModal}></button>
+            </div>
+          </div>
+        )}
+        {showListedModal && selectedListedNFT && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>{selectedListedNFT.name}</h2>
+              <img 
+                src={selectedListedNFT.image} 
+                alt={selectedListedNFT.name}
+                className="modal-nft-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
+                }}
+              />
+              
+              <div className="listing-details">
+                <h3>Listing Details</h3>
+                <div className="detail-row">
+                  <span>Price:</span>
+                  <span>{selectedListedNFT.listing.price} MATIC</span>
+                </div>
+                <div className="detail-row">
+                  <span>Amount Listed:</span>
+                  <span>{selectedListedNFT.listing.amount}</span>
+                </div>
+                <div className="detail-row">
+                  <span>End Date:</span>
+                  <span>{new Date(selectedListedNFT.listing.endTime).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {removeError && (
+                <div className="error-message">
+                  <p>{removeError}</p>
+                  <p className="error-hint">
+                    {removeError.includes('gas') ? 'Try increasing gas limit or waiting for network congestion to decrease.' : 
+                    removeError.includes('rejected') ? 'Transaction was rejected. Please try again.' : 
+                    'Please try again or contact support if the issue persists.'}
+                  </p>
+                </div>
+              )}
+
+              {removeStatus && (
+                <div className="transaction-info">
+                  <p>{removeStatus}</p>
+                  {removeTxHash && (
+                    <a 
+                      href={`https://amoy.polygonscan.com/tx/${removeTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transaction-link"
+                    >
+                      View on Explorer
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="cancel-amount-section">
+                <label htmlFor="cancel-amount">Amount to Remove:</label>
+                <div className="amount-input-container">
+                  <button 
+                    className="amount-adjust" 
+                    onClick={() => setAmount(prev => Math.max(1, prev - 1))}
+                    disabled={amount <= 1 || isRemoving}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    id="cancel-amount"
+                    value={amount}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val >= 1 && val <= parseInt(selectedListedNFT.listing.amount)) {
+                        setAmount(val);
+                      }
+                    }}
+                    min="1"
+                    max={selectedListedNFT.listing.amount}
+                    disabled={isRemoving}
+                  />
+                  <button 
+                    className="amount-adjust" 
+                    onClick={() => setAmount(prev => Math.min(parseInt(selectedListedNFT.listing.amount), prev + 1))}
+                    disabled={amount >= parseInt(selectedListedNFT.listing.amount) || isRemoving}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="remove-listing-button"
+                  onClick={() => handleRemoveListing(selectedListedNFT, amount)}
+                  disabled={isRemoving}
+                >
+                  {isRemoving ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    `Remove ${amount} from Marketplace`
+                  )}
+                </button>
+                <button 
+                  className="close-modal-button"
+                  onClick={handleCloseListedModal}
+                  disabled={isRemoving}
+                >
+                  Close
+                </button>
+              </div>
+
+              <button 
+                className="close-modal" 
+                onClick={handleCloseListedModal}
+                disabled={isRemoving}
+              />
             </div>
           </div>
         )}

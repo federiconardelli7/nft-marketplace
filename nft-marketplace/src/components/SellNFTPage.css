@@ -401,3 +401,204 @@
       padding: 20px;
     }
   }
+
+  .nft-state {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border: 1px solid var(--primary-color);
+  }
+  
+  .nft-state p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: var(--text-color);
+  }
+  
+  .nft-state p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .error-message {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    text-align: center;
+  }
+  
+  /* Disabled state for list button */
+  .list-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--input-border);
+  }
+
+  .modal-nft-image {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    border-radius: 8px;
+  }
+  
+  .listing-details h3 {
+    margin: 0 0 15px 0;
+    color: var(--text-color);
+  }
+  
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--input-border);
+  }
+  
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+  
+  .detail-row span:first-child {
+    color: var(--text-color);
+    opacity: 0.8;
+  }
+  
+  .detail-row span:last-child {
+    font-weight: 500;
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .remove-listing-button {
+    flex: 1;
+    padding: 12px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .remove-listing-button:hover {
+    background-color: #c0392b;
+  }
+  
+  .close-modal-button {
+    flex: 1;
+    padding: 12px;
+    background-color: var(--input-border);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .close-modal-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .cancel-amount-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+  }
+  
+  .cancel-amount-section label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text-color);
+    font-weight: 500;
+  }
+  
+  .cancel-amount-section .amount-input-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .cancel-amount-section input {
+    width: 80px;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    font-size: 16px;
+  }
+  
+  .cancel-amount-section .amount-adjust {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  
+  .cancel-amount-section .amount-adjust:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .cancel-amount-section .amount-adjust:hover:not(:disabled) {
+    background-color: var(--primary-color-hover);
+  }
+
+  /* Add these styles to your SellNFTPage.css */
+.approve-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.approve-button:hover {
+  background-color: #45a049;
+}
+
+.approve-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.approval-status {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.approval-status.pending {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.approval-status.approved {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+

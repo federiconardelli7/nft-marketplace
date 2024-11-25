@@ -19,7 +19,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         uint256 price;
         uint256 amount;
         uint256 remainingAmount;
-        uint256 endTime;  // New field
+        uint256 endTime;
         bool active;
     }
 
@@ -33,7 +33,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         address seller,
         uint256 price,
         uint256 amount,
-        uint256 endTime  // New field
+        uint256 endTime
     );
 
     event MarketItemSold(
@@ -46,11 +46,58 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         uint256 amount
     );
 
+    event MarketItemExpired(
+        uint256 indexed marketItemId,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        address seller,
+        uint256 remainingAmount
+    );
+
+    event MarketItemCancelled(
+        uint256 indexed marketItemId,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        address seller,
+        uint256 remainingAmount
+    );
+
     constructor() Ownable(msg.sender) {}
 
-    function setPlatformFee(uint256 newFeePercentage) external onlyOwner {
-        require(newFeePercentage <= 10000, "Fee cannot exceed 100%");
-        platformFeePercentage = newFeePercentage;
+    // Utility function to check if a listing is expired
+    function isExpired(uint256 marketItemId) public view returns (bool) {
+        MarketItem storage item = _marketItems[marketItemId];
+        return item.endTime <= block.timestamp;
+    }
+
+    // Function to handle expired listing
+    function handleExpiredListing(uint256 marketItemId) internal {
+        MarketItem storage item = _marketItems[marketItemId];
+        require(item.active && item.remainingAmount > 0 && isExpired(marketItemId), "Listing not eligible for expiry handling");
+
+        // Save amount to return before modifying storage
+        uint256 amountToReturn = item.remainingAmount;
+        
+        // Update state before transfer to prevent reentrancy
+        item.remainingAmount = 0;
+        item.active = false;
+
+        // Return remaining NFTs to seller
+        IERC1155(item.nftContract).safeTransferFrom(
+            address(this),
+            item.seller,
+            item.tokenId,
+            amountToReturn,
+            ""
+        );
+
+        emit MarketItemExpired(
+            marketItemId,
+            item.nftContract,
+            item.tokenId,
+            item.seller,
+            amountToReturn
+        );
     }
 
     function listToken(
@@ -58,7 +105,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         uint256 tokenId,
         uint256 amount,
         uint256 price,
-        uint256 endTime  // New parameter
+        uint256 endTime
     ) external nonReentrant {
         require(amount > 0, "Amount must be greater than 0");
         require(price > 0, "Price must be greater than 0");
@@ -81,7 +128,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
             price,
             amount,
             amount,
-            endTime,  // New field
+            endTime,
             true
         );
 
@@ -94,14 +141,20 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
             msg.sender,
             price,
             amount,
-            endTime  // New field
+            endTime
         );
     }
 
     function buyToken(uint256 marketItemId, uint256 amount) external payable nonReentrant {
         MarketItem storage item = _marketItems[marketItemId];
         require(item.active, "Item not active");
-        require(block.timestamp <= item.endTime, "Listing has expired");  // New check
+        
+        // Check if expired and handle appropriately
+        if (isExpired(marketItemId)) {
+            handleExpiredListing(marketItemId);
+            revert("Listing has expired");
+        }
+        
         require(amount > 0 && amount <= item.remainingAmount, "Invalid amount");
         require(msg.value == item.price * amount, "Incorrect price");
 
@@ -122,7 +175,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         item.remainingAmount -= amount;
         _itemsSold += amount;
 
-        if (item.remainingAmount == 0 || block.timestamp > item.endTime) {
+        if (item.remainingAmount == 0) {
             item.active = false;
         }
 
@@ -137,25 +190,44 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         );
     }
 
-    function cancelListing(uint256 marketItemId) external nonReentrant {
-        MarketItem storage item = _marketItems[marketItemId];
-        require(item.active, "Item not active");
-        require(msg.sender == item.seller, "Only seller can cancel");
+    function cancelListing(uint256 marketItemId, uint256 amountToRemove) external nonReentrant {
+    MarketItem storage item = _marketItems[marketItemId];
+    require(item.active, "Item not active");
+    require(msg.sender == item.seller, "Only seller can cancel");
+    require(amountToRemove > 0 && amountToRemove <= item.remainingAmount, "Invalid amount to remove");
 
+    // If removing all, deactivate listing
+    if (amountToRemove == item.remainingAmount) {
         item.active = false;
-        IERC1155(item.nftContract).safeTransferFrom(
-            address(this),
-            item.seller,
-            item.tokenId,
-            item.remainingAmount,
-            ""
-        );
     }
+    
+    // Update remaining amount
+    item.remainingAmount -= amountToRemove;
+    
+    // Return the NFTs to seller
+    IERC1155(item.nftContract).safeTransferFrom(
+        address(this),
+        item.seller,
+        item.tokenId,
+        amountToRemove,
+        ""
+    );
+
+    emit MarketItemCancelled(
+        marketItemId,
+        item.nftContract,
+        item.tokenId,
+        item.seller,
+        amountToRemove
+    );
+}
 
     function fetchMarketItems() public view returns (MarketItem[] memory) {
         uint256 activeItemCount = 0;
+        
+        // First pass: count active and non-expired items
         for (uint256 i = 1; i <= _marketItemIds; i++) {
-            if (_marketItems[i].active && block.timestamp <= _marketItems[i].endTime) {
+            if (_marketItems[i].active && !isExpired(i)) {
                 activeItemCount++;
             }
         }
@@ -163,13 +235,21 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         MarketItem[] memory items = new MarketItem[](activeItemCount);
         uint256 currentIndex = 0;
         
+        // Second pass: populate array with active and non-expired items
         for (uint256 i = 1; i <= _marketItemIds; i++) {
-            if (_marketItems[i].active && block.timestamp <= _marketItems[i].endTime) {
+            if (_marketItems[i].active && !isExpired(i)) {
                 items[currentIndex] = _marketItems[i];
                 currentIndex++;
             }
         }
         return items;
+    }
+
+    // Function to handle expired listings (can be called by anyone)
+    function cleanExpiredListing(uint256 marketItemId) external {
+        require(_marketItems[marketItemId].active, "Item not active");
+        require(isExpired(marketItemId), "Item not expired");
+        handleExpiredListing(marketItemId);
     }
 
     function getMarketItem(uint256 marketItemId) public view returns (MarketItem memory) {

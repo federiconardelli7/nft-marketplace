@@ -118,7 +118,9 @@ function AppContent() {
             <nav className="app-nav">
               <Link to="/marketplace"><button>Explore Marketplace</button></Link>
               <Link to="/mint"><button>Mint your NFT</button></Link>
-              <Link to="/sell"><button>Sell your NFT</button></Link>
+              {/* <Link to="/sell"><button>Sell your NFT</button></Link>   */}
+              <Link to="/profile"><button>Sell your NFT</button></Link>  
+              {/* NOW REDIRECT TO PROFILE. */}
             </nav>
 
             {error && <p className="error-message">{error}</p>}
@@ -149,13 +151,13 @@ function AppContent() {
           </main>
         } />
         <Route path="/mint" element={<MintNFTPage account={account} />} />
-        <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/marketplace" element={<MarketplacePage account={account} />} />
         <Route path="/profile" element={<ProfilePage account={account} />} />
         <Route path="/sell" element={<SellNFTPage account={account} />} />
       </Routes>
 
       <footer className="app-footer">
-        <p>&copy; 2024 NFT Marketplace. All rights reserved. Developed by <a href="https://github.com//nft-marketplace">Federico Nardelli</a></p>
+        <p>&copy; 2024 NFT Marketplace. All rights reserved. Developed by <a href="https://github.com/federiconardelli7/nft-marketplace">Federico Nardelli</a></p>
       </footer>
     </div>
   );

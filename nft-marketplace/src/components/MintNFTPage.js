@@ -105,19 +105,29 @@ function MintNFTPage({ account }) {
         account
       });
       
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
       if (!NFT_ADDRESS) {
         throw new Error("NFT contract address is not defined");
       }
+  
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      // Ensure we're on the correct network
+      const network = await provider.getNetwork();
+      console.log('Current network:', network);
       
       const contract = new ethers.Contract(
         NFT_ADDRESS,
         NFT_ABI,
         signer
       );
-
+  
+      // Verify the contract is deployed
+      const code = await provider.getCode(NFT_ADDRESS);
+      if (code === '0x') {
+        throw new Error('NFT contract not deployed at the specified address');
+      }
+  
       return contract;
     } catch (error) {
       console.error("Error getting contract:", error);
@@ -127,25 +137,25 @@ function MintNFTPage({ account }) {
 
   const updateCostEstimates = async () => {
     try {
-      const gasPrice = await window.ethereum.request({ 
-        method: 'eth_gasPrice' 
-      });
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const gasPrice = await provider.getGasPrice();
       
-      // Convert hex gasPrice to decimal using ethers
+      // Convert gasPrice to Gwei string
       const gasPriceGwei = ethers.formatUnits(gasPrice, 'gwei');
       
       // Estimate gas for minting (typical gas limit for ERC1155 mint)
       const estimatedGas = 150000; // Conservative estimate for ERC1155 mint
-      const gasCostEther = ethers.formatEther(
-        ethers.parseUnits(gasPriceGwei, 'gwei') * estimatedGas
-      );
+      
+      // Calculate gas cost in ETH
+      const gasCostWei = gasPrice * estimatedGas;
+      const gasCostEther = ethers.formatEther(gasCostWei);
       
       setCostInfo({
         gasPrice: gasPriceGwei,
         estimatedGasFee: gasCostEther,
-        totalCost: gasCostEther // Total is just gas fee since minting is free
+        totalCost: gasCostEther
       });
-
+  
     } catch (error) {
       console.error('Error estimating gas costs:', error);
       setCostInfo({
@@ -159,23 +169,56 @@ function MintNFTPage({ account }) {
   const mintNFT = async (metadataUrl, supply) => {
     try {
       const contract = await getContract();
-      const royaltyBasisPoints = creatorRoyalty * 100;
       
+      if (!contract) {
+        throw new Error('Failed to get NFT contract');
+      }
+  
+      const royaltyBasisPoints = creatorRoyalty * 100;
+  
+      // Fixed gas settings for Polygon Amoy
+      const txOptions = {
+        gasLimit: 300000,  // Fixed higher gas limit
+        gasPrice: ethers.parseUnits('100', 'gwei'),  // 100 Gwei
+        value: 0,  // No ETH value being sent
+      };
+  
+      console.log('Minting with params:', {
+        supply,
+        metadataUrl,
+        royaltyBasisPoints,
+        txOptions: {
+          gasLimit: txOptions.gasLimit.toString(),
+          gasPrice: ethers.formatUnits(txOptions.gasPrice, 'gwei') + ' Gwei'
+        }
+      });
+  
       const transaction = await contract.mint(
         supply,
         metadataUrl,
-        royaltyBasisPoints
+        royaltyBasisPoints,
+        txOptions
       );
-
+  
+      console.log('Transaction sent:', transaction.hash);
       const receipt = await transaction.wait();
-      setTransactionHash(receipt.hash);
-
+      console.log('Transaction confirmed:', receipt);
+  
+      const event = receipt.logs.find(
+        log => log.eventName === 'TokenMinted'
+      );
+  
+      if (!event) {
+        throw new Error('TokenMinted event not found in receipt');
+      }
+  
       return {
-        tokenId: receipt.logs[0].args[3], // Adjust based on your event structure
+        tokenId: event.args.tokenId,
         transactionHash: receipt.hash
       };
     } catch (error) {
-      throw new Error('Transaction failed. Please try again.');
+      console.error('Minting error:', error);
+      throw new Error('Transaction failed: ' + (error.message || 'Please try again'));
     }
   };
 

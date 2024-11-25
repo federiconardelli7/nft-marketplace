@@ -80,11 +80,12 @@ const activitySchema = new mongoose.Schema({
   activity_type: {
     type: String,
     required: true,
-    enum: ['MINT', 'LIST', 'BUY', 'SELL']
+    enum: ['MINT', 'LIST', 'UNLIST', 'BUY', 'SELL', 'EXPIRED']
   },
   token_id: String,
   amount: Number,
   transaction_hash: String,
+  price: String,
   created_at: {
     type: Date,
     default: Date.now

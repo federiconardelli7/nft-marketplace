@@ -150,6 +150,7 @@
 
 .profile-content {
   margin-top: 2rem;
+  width: 100%;
 }
 
 .tabs {
@@ -180,6 +181,8 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .nft-item {
@@ -446,6 +449,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .activity-type.list { background: #f6ffed; color: #52c41a; }
 .activity-type.buy { background: #fff7e6; color: #fa8c16; }
 .activity-type.sell { background: #fff1f0; color: #f5222d; }
+.activity-type.unlist {background-color: #ffebee; color: #c62828; }
+.activity-type.expired {  background: #ffebee; color: #c62828; }
 
 .tx-link {
   color: var(--primary-color);
@@ -459,9 +464,19 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Loading and No Items States */
 .loading,
 .no-items {
-  text-align: center;
-  padding: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  width: 100%;
   color: var(--text-color);
+  font-size: 1.1em;
+  margin: 0;
+  padding: 0;
+  grid-column: 1 / -1;
 }
 
 /* Responsive Design */
@@ -496,4 +511,404 @@ input[type="number"]::-webkit-outer-spin-button {
   .social-links-edit {
     padding: 0 10px;
   }
+}
+
+.listing-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--input-border);
+}
+
+.listing-details p {
+  margin: 5px 0;
+  font-size: 0.9em;
+  color: var(--text-color);
+}
+
+/* .activity-type.cancel {
+  background: #f0f0f0;
+  color: #666666;
+} */
+
+
+
+
+
+.activity-table {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.activity-table .no-items {
+  background: none;
+  box-shadow: none;
+  min-height: 200px;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.activity-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.activity-table th,
+.activity-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.activity-table th {
+  font-weight: 600;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+/* Set specific widths for columns to match your screenshot */
+.activity-table th:nth-child(1),
+.activity-table td:nth-child(1) {
+  width: 15%;
+}
+
+.activity-table th:nth-child(2),
+.activity-table td:nth-child(2) {
+  width: 25%;
+}
+
+.activity-table th:nth-child(3),
+.activity-table td:nth-child(3) {
+  width: 10%;
+}
+
+.activity-table th:nth-child(4),
+.activity-table td:nth-child(4) {
+  width: 15%;
+}
+
+.activity-table th:nth-child(5),
+.activity-table td:nth-child(5) {
+  width: 15%;
+}
+
+.activity-table th:nth-child(6),
+.activity-table td:nth-child(6) {
+  width: 15%;
+}
+
+.nft-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nft-name {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.token-id {
+  font-size: 0.8em;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+.activity-type {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.activity-type.mint {
+  background-color: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.activity-type.list {
+  background-color: rgba(155, 89, 182, 0.2);
+  color: #8e44ad;
+}
+
+.activity-type.buy {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #27ae60;
+}
+
+.activity-type.sell {
+  background-color: rgba(230, 126, 34, 0.2);
+  color: #d35400;
+}
+
+.activity-type.unlist {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.activity-type.expired {
+  background-color: rgba(192, 57, 43, 0.2);
+  color: #c0392b;
+}
+
+.tx-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-family: monospace;
+  padding: 4px 8px;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.tx-link:hover {
+  background-color: rgba(52, 152, 219, 0.2);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .activity-table {
+    font-size: 0.9em;
+  }
+
+  .activity-type {
+    padding: 3px 8px;
+  }
+
+  .token-id {
+    display: none; /* Hide token ID on mobile */
+  }
+}
+
+/* Style for the Buy button */
+.buy-button {
+  background-color: #28a745; /* Green color */
+  color: white; /* Text color */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.buy-button:hover {
+  background-color: #218838; /* Darker green on hover */
+}
+
+/* Style for the List button */
+.list-button {
+  background-color: #9b59b6; /* Purple color */
+  color: white; /* Text color */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.list-button:hover {
+  background-color: #8e44ad; /* Darker purple on hover */
+}
+
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.transaction-info {
+  background-color: rgba(46, 204, 113, 0.1);
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  text-align: center;
+}
+
+.transaction-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.transaction-link:hover {
+  text-decoration: underline;
+}
+
+/* Disabled states */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input:disabled,
+select:disabled {
+  background-color: var(--bg-color);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.profile-page-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.transaction-info {
+  background-color: rgba(46, 204, 113, 0.1);
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  text-align: center;
+}
+
+.transaction-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 4px 8px;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.transaction-link:hover {
+  background-color: rgba(52, 152, 219, 0.2);
+  text-decoration: underline;
+}
+
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.modal-content button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.amount-input-container {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.amount-input-container input[type="number"] {
+  width: 80px;
+  text-align: center;
+  margin: 0 8px;
+}
+
+.remove-listing-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.remove-listing-button:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.close-modal-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.close-modal-button:hover:not(:disabled) {
+  background-color: #7f8c8d;
+}
+
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.error-message p {
+  margin: 0;
+  padding: 0;
+}
+
+.error-message .error-hint {
+  font-size: 0.9em;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.clean-expired-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.clean-expired-button:hover:not(:disabled) {
+  background-color: var(--primary-color-hover);
+}
+
+.clean-expired-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
