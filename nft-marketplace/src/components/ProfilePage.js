@@ -11,7 +11,7 @@ import { ethers } from 'ethers';
 import { Link } from 'react-router-dom';
 import './ProfilePage.css';
 
-function ProfilePage({ account }) {
+function ProfilePage({ account, showProfileSection = true }) {
   const [userNFTs, setUserNFTs] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activeTab, setActiveTab] = useState('owned'); 
@@ -35,7 +35,7 @@ function ProfilePage({ account }) {
   const [showSellModal, setShowSellModal] = useState(false);
   const [saleType, setSaleType] = useState('fixed');
   const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('MATIC');
+  const [currency, setCurrency] = useState('POL');
   const [duration, setDuration] = useState('1 day');
   const [endDate, setEndDate] = useState('');
   const [amount, setAmount] = useState(1);
@@ -88,22 +88,22 @@ function ProfilePage({ account }) {
   }, [duration]);
 
   useEffect(() => {
-    setPrice(currency === 'MATIC' ? '0.001' : '1');
+    setPrice(currency === 'POL' ? '0.001' : '1');
   }, [currency]);
 
-  // useEffect(() => {
-  //   if (!account) return;
+  useEffect(() => {
+    if (!account) return;
   
-  //   // Check for expired listings immediately
-  //   handleExpiredListings(account);
+    // Check for expired listings immediately
+    handleExpiredListings(account);
   
-  //   // Then check every 5 minutes
-  //   const interval = setInterval(() => {
-  //     handleExpiredListings(account);
-  //   }, 5 * 60 * 1000);
+    // Then check every 5 minutes
+    const interval = setInterval(() => {
+      handleExpiredListings(account);
+    }, 5 * 60 * 1000);
   
-  //   return () => clearInterval(interval);
-  // }, [account]);
+    return () => clearInterval(interval);
+  }, [account]);
 
 useEffect(() => {
   const checkAndHandleExpiredListings = async () => {
@@ -414,17 +414,17 @@ useEffect(() => {
 
   const incrementPrice = () => {
     setPrice(prev => {
-      const increment = currency === 'MATIC' ? 0.001 : 1;
+      const increment = currency === 'POL' ? 0.001 : 1;
       const newPrice = parseFloat(prev || 0) + increment;
-      return currency === 'MATIC' ? newPrice.toFixed(4) : newPrice.toString();
+      return currency === 'POL' ? newPrice.toFixed(4) : newPrice.toString();
     });
   };
 
   const decrementPrice = () => {
     setPrice(prev => {
-      const decrement = currency === 'MATIC' ? 0.001 : 1;
+      const decrement = currency === 'POL' ? 0.001 : 1;
       const newPrice = Math.max(0, parseFloat(prev || 0) - decrement);
-      return currency === 'MATIC' ? newPrice.toFixed(4) : newPrice.toString();
+      return currency === 'POL' ? newPrice.toFixed(4) : newPrice.toString();
     });
   };
 
@@ -560,7 +560,8 @@ useEffect(() => {
         activity_type: 'LIST',
         token_id: selectedNFT.id,
         amount: amount,
-        transaction_hash: tx.hash
+        transaction_hash: tx.hash,
+        price: price
       });
   
       setListingStatus('NFT listed successfully!');
@@ -737,293 +738,307 @@ useEffect(() => {
     }).format(date);
   };
 
+  useEffect(() => {
+    if (account) {
+      handleExpiredListings(account);
+    }
+  }, [account]);
+
   return (
     <div className="profile-page-wrapper">
       <div className="profile-page">
-        <div className="profile-header">
-          {isEditing ? (
-            <div 
-              className={`profile-image-upload ${isDragging ? 'dragging' : ''}`}
-              onClick={() => fileInputRef.current.click()}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
+        {!account && (
+          <div className="no-wallet-message">
+            Please connect your wallet to access this feature
+          </div>
+        )}
+        
+        {showProfileSection && account && (
+          <div className="profile-header">
+            {isEditing ? (
+              <div 
+                className={`profile-image-upload ${isDragging ? 'dragging' : ''}`}
+                onClick={() => fileInputRef.current.click()}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <img
+                  src={profileImage || "https://via.placeholder.com/100"}
+                  alt="Profile"
+                  className="profile-picture"
+                />
+                <span className="upload-text">
+                  {isDragging ? 'Drop image here' : 'Click or drag to upload'}
+                </span>
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  onChange={handleImageChange} 
+                  accept="image/*"
+                  hidden 
+                />
+              </div>
+            ) : (
               <img
                 src={profileImage || "https://via.placeholder.com/100"}
                 alt="Profile"
                 className="profile-picture"
-                onClick={() => !isEditing && setIsEditing(true)}
-                style={{ cursor: isEditing ? 'pointer' : 'default' }}
+                style={{ cursor: 'default' }}
               />
-              <span className="upload-text">
-                {isDragging ? 'Drop image here' : 'Click or drag to upload'}
-              </span>
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                onChange={handleImageChange} 
-                accept="image/*"
-                hidden 
-              />
-            </div>
-          ) : (
-            <img
-              src={profileImage || "https://via.placeholder.com/100"}
-              alt="Profile"
-              className="profile-picture"
-              onClick={() => !isEditing && setIsEditing(true)}
-              style={{ cursor: isEditing ? 'pointer' : 'default' }}
-            />
-          )}
-          {isEditing ? (
-            <div className="edit-field">
-              <label htmlFor="username">Name:</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={profileInfo.username}
-                onChange={handleInputChange}
-                className="edit-input"
-              />
-            </div>
-          ) : (
-            <h1>{profileInfo.username}</h1>
-          )}
-          {!isEditing && <p className="wallet-address">{account}</p>}
-          {isEditing ? (
-            <div className="edit-field">
-              <label htmlFor="bio">Bio:</label>
-              <textarea
-                ref={bioTextareaRef}
-                id="bio"
-                name="bio"
-                value={profileInfo.bio}
-                onChange={handleInputChange}
-                className="edit-input auto-resize"
-              />
-            </div>
-          ) : (
-            <p className="bio">{profileInfo.bio}</p>
-          )}
-          <div className="social-links">
-            {!isEditing ? (
-              <>
-                {profileInfo.twitter ? (
-                  <a href={`https://x.com/${profileInfo.twitter.replace('@', '')}`} 
-                     target="_blank"
-                     rel="noopener noreferrer" 
-                     className="active-link" 
-                     aria-label="Twitter">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </a>
-                ) : (
-                  <span className="inactive-link" aria-label="Twitter not set">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </span>
-                )}
-                {profileInfo.instagram ? (
-                  <a href={`https://instagram.com/${profileInfo.instagram.replace('@', '')}`} 
-                     target="_blank" 
-                     rel="noopener noreferrer" 
-                     className="active-link" 
-                     aria-label="Instagram">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                  </a>
-                ) : (
-                  <span className="inactive-link" aria-label="Instagram not set">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                  </span>
-                )}
-              </>
-            ) : (
-              <div className="social-links-edit">
-                <div className="edit-field">
-                  <label>Twitter:</label>
-                  <input
-                    type="text"
-                    name="twitter"
-                    value={profileInfo.twitter}
-                    onChange={handleInputChange}
-                    className="edit-input"
-                    placeholder="@username"
-                  />
-                </div>
-                <div className="edit-field">
-                  <label>Instagram:</label>
-                  <input
-                    type="text"
-                    name="instagram"
-                    value={profileInfo.instagram}
-                    onChange={handleInputChange}
-                    className="edit-input"
-                    placeholder="@username"
-                  />
-                </div>
+            )}
+            {isEditing ? (
+              <div className="edit-field">
+                <label htmlFor="username">Name:</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={profileInfo.username}
+                  onChange={handleInputChange}
+                  className="edit-input"
+                />
               </div>
+            ) : (
+              <h1>{profileInfo.username}</h1>
+            )}
+            {!isEditing && <p className="wallet-address">{account}</p>}
+            {isEditing ? (
+              <div className="edit-field">
+                <label htmlFor="bio">Bio:</label>
+                <textarea
+                  ref={bioTextareaRef}
+                  id="bio"
+                  name="bio"
+                  value={profileInfo.bio}
+                  onChange={handleInputChange}
+                  className="edit-input auto-resize"
+                />
+              </div>
+            ) : (
+              <p className="bio">{profileInfo.bio}</p>
+            )}
+            <div className="social-links">
+              {!isEditing ? (
+                <>
+                  {profileInfo.twitter ? (
+                    <a href={`https://x.com/${profileInfo.twitter.replace('@', '')}`} 
+                       target="_blank"
+                       rel="noopener noreferrer" 
+                       className="active-link" 
+                       aria-label="Twitter">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span className="inactive-link" aria-label="Twitter not set">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    </span>
+                  )}
+                  {profileInfo.instagram ? (
+                    <a href={`https://instagram.com/${profileInfo.instagram.replace('@', '')}`} 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       className="active-link" 
+                       aria-label="Instagram">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span className="inactive-link" aria-label="Instagram not set">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                      </svg>
+                    </span>
+                  )}
+                </>
+              ) : (
+                <div className="social-links-edit">
+                  <div className="edit-field">
+                    <label>Twitter:</label>
+                    <input
+                      type="text"
+                      name="twitter"
+                      value={profileInfo.twitter}
+                      onChange={handleInputChange}
+                      className="edit-input"
+                      placeholder="@username"
+                    />
+                  </div>
+                  <div className="edit-field">
+                    <label>Instagram:</label>
+                    <input
+                      type="text"
+                      name="instagram"
+                      value={profileInfo.instagram}
+                      onChange={handleInputChange}
+                      className="edit-input"
+                      placeholder="@username"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            {isEditing ? (
+              <button onClick={handleSaveProfile} className="edit-profile-btn">Save Profile</button>
+            ) : (
+              <button onClick={handleEditProfile} className="edit-profile-btn">Edit Profile</button>
             )}
           </div>
-          {isEditing ? (
-            <button onClick={handleSaveProfile} className="edit-profile-btn">Save Profile</button>
-          ) : (
-            <button onClick={handleEditProfile} className="edit-profile-btn">Edit Profile</button>
-          )}
-        </div>
+        )}
 
-        <div className="profile-content">
-        <div className="tabs">
-          <button 
-            className={activeTab === 'owned' ? 'active' : ''}
-            onClick={() => setActiveTab('owned')}
-          >
-            NFT Owned
-          </button>
-          <button 
-            className={activeTab === 'listed' ? 'active' : ''}
-            onClick={() => setActiveTab('listed')}
-          >
-            NFT Listed
-          </button>
-          <button 
-            className={activeTab === 'activity' ? 'active' : ''}
-            onClick={() => setActiveTab('activity')}
-          >
-            Activity
-          </button>
-        </div>
+        {account && (
+          <div className="profile-content">
+            <div className="tabs">
+              <button 
+                className={activeTab === 'owned' ? 'active' : ''}
+                onClick={() => setActiveTab('owned')}
+              >
+                NFT Owned
+              </button>
+              <button 
+                className={activeTab === 'listed' ? 'active' : ''}
+                onClick={() => setActiveTab('listed')}
+              >
+                NFT Listed
+              </button>
+              {/* <button onClick={() => handleExpiredListings(account)}>Clean Expired Listings</button> */}
+              <button 
+                className={activeTab === 'activity' ? 'active' : ''}
+                onClick={() => setActiveTab('activity')}
+              >
+                Activity
+              </button>
+            </div>
 
-        {isLoading ? (
-            <div className="loading">Loading...</div>
-          ) : (
-            <>
-              {activeTab === 'owned' && (
-                <div className="nft-grid">
-                  {userNFTs.length > 0 ? (
-                    userNFTs.map((nft) => (
-                      <div key={nft.id} className="nft-item" onClick={() => handleNFTClick(nft)}>
-                        <img 
-                          src={nft.image} 
-                          alt={nft.name} 
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
-                          }}
-                        />
-                        <div className="nft-info">
-                          <h3>{nft.name}</h3>
-                          <p className="nft-amount">
-                            Available: {nft.available} of {nft.mintInfo.originalAmount}
-                          </p>
-                          {nft.listing && (
-                            <p>Listed: {nft.listing.amount} for {nft.listing.price} MATIC</p>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-items">No NFTs found</div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'listed' && (
-                <div className="nft-grid">
-                  {listedNFTs.length > 0 ? (
-                    listedNFTs.map((nft) => (
-                      <div key={nft.id} className="nft-item" onClick={() => handleListedNFTClick(nft)}>
-                        <img 
-                          src={nft.image} 
-                          alt={nft.name} 
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
-                          }}
-                        />
-                        <div className="nft-info">
-                          <h3>{nft.name}</h3>
-                          <div className="listing-details">
-                            <p>Price: {nft.listing.price} MATIC</p>
-                            <p>Amount Listed: {nft.listing.amount}</p>
+            {isLoading ? (
+              <div className="loading">Loading...</div>
+            ) : (
+              <>
+                {activeTab === 'owned' && (
+                  <div className="nft-grid">
+                    {userNFTs.length > 0 ? (
+                      userNFTs.map((nft) => (
+                        <div key={nft.id} className="nft-item" onClick={() => handleNFTClick(nft)}>
+                          <img 
+                            src={nft.image} 
+                            alt={nft.name} 
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
+                            }}
+                          />
+                          <div className="nft-info">
+                            <h3>{nft.name}</h3>
+                            <p className="nft-amount">
+                              Available: {nft.available} of {nft.mintInfo.originalAmount}
+                            </p>
+                            {nft.listing && (
+                              <p>Listed: {nft.listing.amount} for {nft.listing.price} POL</p>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-items">No NFTs currently listed</div>
-                  )}
-                </div>
-              )}
-
-            {activeTab === 'activity' && (
-              <div className="activity-table">
-                {activities.length > 0 ? (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Action</th>
-                        <th>NFT</th>
-                        <th>Amount</th>
-                        <th>Price/Item</th>
-                        <th>Transaction</th>
-                        <th>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activities.map((activity) => {
-                        const relatedNFT = userNFTs.find(nft => nft.id === activity.token_id);
-                        const nftName = relatedNFT ? relatedNFT.name : `NFT #${activity.token_id}`;
-                  
-                        return (
-                          <tr key={`${activity.transaction_hash}-${activity.token_id}-${activity.activity_type}`}>
-                            <td>
-                              <span className={`activity-type ${activity.activity_type.toLowerCase()}`}>
-                                {activity.activity_type}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="nft-info-cell">
-                                <span className="nft-name">{nftName}</span>
-                                <span className="token-id">ID: {activity.token_id}</span>
-                              </div>
-                            </td>
-                            <td>{activity.amount}</td>
-                            <td className="price-cell">
-                              {activity.price && `${activity.price} MATIC`}
-                            </td>
-                            <td>
-                              <a 
-                                href={`https://amoy.polygonscan.com/tx/${activity.transaction_hash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="tx-link"
-                              >
-                                {activity.transaction_hash.slice(0, 6)}...{activity.transaction_hash.slice(-4)}
-                              </a>
-                            </td>
-                            <td>{formatDate(activity.created_at)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="no-items">No activities found</div>
+                      ))
+                    ) : (
+                      <div className="no-items">No NFTs found</div>
+                    )}
+                  </div>
                 )}
-              </div>
+
+                {activeTab === 'listed' && (
+                  <div className="nft-grid">
+                    {listedNFTs.length > 0 ? (
+                      listedNFTs.map((nft) => (
+                        <div key={nft.id} className="nft-item" onClick={() => handleListedNFTClick(nft)}>
+                          <img 
+                            src={nft.image} 
+                            alt={nft.name} 
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://via.placeholder.com/400?text=NFT+Image+Not+Found';
+                            }}
+                          />
+                          <div className="nft-info">
+                            <h3>{nft.name}</h3>
+                            <div className="listing-details">
+                              <p>Price: {nft.listing.price} POL</p>
+                              <p>Amount Listed: {nft.listing.amount}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-items">No NFTs currently listed</div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'activity' && (
+                  <div className="activity-table">
+                    {activities.length > 0 ? (
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Action</th>
+                            <th>NFT</th>
+                            <th>Amount</th>
+                            <th>Price/Item</th>
+                            <th>Transaction</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activities.map((activity) => {
+                            const relatedNFT = userNFTs.find(nft => nft.id === activity.token_id);
+                            const nftName = relatedNFT ? relatedNFT.name : `NFT #${activity.token_id}`;
+                  
+                            return (
+                              <tr key={`${activity.transaction_hash}-${activity.token_id}-${activity.activity_type}`}>
+                                <td>
+                                  <span className={`activity-type ${activity.activity_type.toLowerCase()}`}>
+                                    {activity.activity_type}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="nft-info-cell">
+                                    <span className="nft-name">{nftName}</span>
+                                    <span className="token-id">ID: {activity.token_id}</span>
+                                  </div>
+                                </td>
+                                <td>{activity.amount}</td>
+                                <td className="price-cell">
+                                  {activity.price && `${activity.price} POL`}
+                                </td>
+                                <td>
+                                  <a 
+                                    href={`https://amoy.polygonscan.com/tx/${activity.transaction_hash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="tx-link"
+                                  >
+                                    {activity.transaction_hash.slice(0, 6)}...{activity.transaction_hash.slice(-4)}
+                                  </a>
+                                </td>
+                                <td>{formatDate(activity.created_at)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="no-items">No activities found</div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
-            </>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Sell Modal */}
         {showSellModal && selectedNFT && (
@@ -1086,7 +1101,7 @@ useEffect(() => {
                       onChange={handleCurrencyChange}
                       className="currency-select"
                     >
-                      <option value="MATIC">MATIC</option>
+                      <option value="POL">POL</option>
                     </select>
                     <button className="price-adjust" onClick={decrementPrice}>-</button>
                     <input
@@ -1168,7 +1183,7 @@ useEffect(() => {
                   {isListing ? (
                     <>
                       <span className="loading-spinner"></span>
-                      Processing...
+                      {/* Processing... */}
                     </>
                   ) : (
                     'List for Sale'
@@ -1226,7 +1241,7 @@ useEffect(() => {
                 <h3>Listing Details</h3>
                 <div className="detail-row">
                   <span>Price:</span>
-                  <span>{selectedListedNFT.listing.price} MATIC</span>
+                  <span>{selectedListedNFT.listing.price} POL</span>
                 </div>
                 <div className="detail-row">
                   <span>Amount Listed:</span>

@@ -37,7 +37,8 @@ function MarketplacePage({ account }) {
       setMarketItems(items);
     } catch (err) {
       console.error("Error fetching market items:", err);
-      setError("Failed to load marketplace items. Please try again later.");
+      // setError("Failed to load marketplace items. Please try again later.");
+      setError("Marketplace is out of items. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -219,7 +220,7 @@ function MarketplacePage({ account }) {
           </div>
 
           <div className="filter-section">
-            <h3>Price Range (MATIC)</h3>
+            <h3>Price Range (POL)</h3>
             <div className="price-range">
               <input
                 type="number"
@@ -262,7 +263,7 @@ function MarketplacePage({ account }) {
                   />
                   <div className="nft-info">
                     <h3>{item.name}</h3>
-                    <p className="nft-price">{item.price} MATIC</p>
+                    <p className="nft-price">{item.price} POL</p>
                     <p className="nft-amount">Available: {item.remainingAmount} of {item.amount}</p>
                     <p className="nft-seller">
                       Seller: {item.seller.substring(0, 6)}...{item.seller.substring(item.seller.length - 4)}
@@ -330,8 +331,8 @@ function MarketplacePage({ account }) {
             </div>
 
             <div className="purchase-summary">
-              <p>Price per item: {selectedItem.price} MATIC</p>
-              <p>Total: {calculateTotal()} MATIC</p>
+              <p>Price per item: {selectedItem.price} POL</p>
+              <p>Total: {calculateTotal()} POL</p>
             </div>
 
             <div className="modal-actions">

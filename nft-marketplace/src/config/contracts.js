@@ -35,8 +35,8 @@ export const NETWORK_CONFIG = {
   chainId: '0x13882', // 80001 in hex
   chainName: 'Polygon Amoy Testnet',
   nativeCurrency: {
-    name: 'AMOY',
-    symbol: 'AMOY',
+    name: 'POL',
+    symbol: 'POL',
     decimals: 18
   },
   rpcUrls: ['https://rpc-amoy.polygon.technology'],

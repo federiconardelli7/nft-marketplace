@@ -40,7 +40,7 @@ function MintNFTPage({ account }) {
       const data = await response.json();
       setMaticPrice(data['matic-network'].usd);
     } catch (error) {
-      console.error("Error fetching MATIC price:", error);
+      console.error("Error fetching POL price:", error);
     }
   };
 

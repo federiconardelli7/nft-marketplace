@@ -10,7 +10,7 @@ function SellNFTPage({ account }) {
   const [selectedNFT, setSelectedNFT] = useState(null);
   const [saleType, setSaleType] = useState('fixed');
   const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('MATIC');
+  const [currency, setCurrency] = useState('POL');
   const [duration, setDuration] = useState('1 day');
   const [endDate, setEndDate] = useState('');
   const [amount, setAmount] = useState(1);
@@ -62,7 +62,7 @@ function SellNFTPage({ account }) {
     if (!nft || !nft.id) return;
 
     setSelectedNFT(nft);
-    setPrice(currency === 'MATIC' ? '0.001' : '1');
+    setPrice(currency === 'POL' ? '0.001' : '1');
     setDuration('1 day');
     updateEndDate('1 day');
     
@@ -175,17 +175,17 @@ function SellNFTPage({ account }) {
 
   const incrementPrice = () => {
     setPrice(prev => {
-      const increment = currency === 'MATIC' ? 0.001 : 1;
+      const increment = currency === 'POL' ? 0.001 : 1;
       const newPrice = parseFloat(prev || 0) + increment;
-      return currency === 'MATIC' ? newPrice.toFixed(4) : newPrice.toString();
+      return currency === 'POL' ? newPrice.toFixed(4) : newPrice.toString();
     });
   };
 
   const decrementPrice = () => {
     setPrice(prev => {
-      const decrement = currency === 'MATIC' ? 0.001 : 1;
+      const decrement = currency === 'POL' ? 0.001 : 1;
       const newPrice = Math.max(0, parseFloat(prev || 0) - decrement);
-      return currency === 'MATIC' ? newPrice.toFixed(4) : newPrice.toString();
+      return currency === 'POL' ? newPrice.toFixed(4) : newPrice.toString();
     });
   };
 
@@ -424,7 +424,7 @@ function SellNFTPage({ account }) {
                     onChange={handleCurrencyChange}
                     className="currency-select"
                   >
-                    <option value="MATIC">MATIC</option>
+                    <option value="POL">POL</option>
                   </select>
                   <button className="price-adjust" onClick={decrementPrice}>-</button>
                   <input
@@ -432,8 +432,8 @@ function SellNFTPage({ account }) {
                     id="price"
                     value={price}
                     onChange={handlePriceChange}
-                    placeholder={currency === 'MATIC' ? '0.0000' : '0'}
-                    step={currency === 'MATIC' ? '0.001' : '1'}
+                    placeholder={currency === 'POL' ? '0.0000' : '0'}
+                    step={currency === 'POL' ? '0.001' : '1'}
                     min="0"
                   />
                   <button className="price-adjust" onClick={incrementPrice}>+</button>

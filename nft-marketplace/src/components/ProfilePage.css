@@ -99,11 +99,16 @@
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   width: 100%;
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.edit-field textarea.edit-input {
+  min-height: 60px;
+  margin-bottom: 30px; /* Additional space after bio */
 }
 
 .edit-field label {
@@ -118,7 +123,6 @@
 .edit-input {
   flex: 1;
   width: 100%;
-  max-width: 300px;
   padding: 8px;
   border: 1px solid var(--primary-color);
   border-radius: 5px;
@@ -135,17 +139,64 @@
 .social-links-edit {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 15px;
-  margin-bottom: 20px;
   width: 100%;
   max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
 
-.social-links-edit .edit-field {
+.profile-image-upload {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--card-bg);
+  border: 2px dashed var(--primary-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-image-upload:hover {
+  border-color: #2980b9;
+  background-color: rgba(41, 128, 185, 0.1);
+}
+
+.profile-image-upload img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+.profile-image-upload:hover img {
+  opacity: 0.7;
+}
+
+.upload-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  text-align: center;
+  color: var(--text-color);
+  background-color: var(--card-bg);
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border: 1px ticks var(--primary-color);
+}
+
+.profile-image-upload:hover .upload-text {
+  opacity: 1;
+}
+
+.profile-image-upload.dragging .upload-text {
+  opacity: 1;
 }
 
 .profile-content {
@@ -200,8 +251,8 @@
 
 .nft-item img {
   width: 100%;
-  height: 200px;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
 
@@ -773,11 +824,12 @@ select:disabled {
   display: inline-block;
   width: 16px;
   height: 16px;
-  margin-right: 8px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #fff;
   animation: spin 1s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 16px;
 }
 
 @keyframes spin {
@@ -911,4 +963,86 @@ select:disabled {
 .clean-expired-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.no-wallet-message {
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  margin: 2rem auto;
+  max-width: 600px;
+  color: var(--text-color);
+  box-shadow: var(--card-shadow);
+}
+
+.profile-edit-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-image-section {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-left: 115px; /* 100px label width + 15px gap */
+}
+
+.profile-image-upload {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--card-bg);
+  border: 2px dashed var(--primary-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-image-upload:hover {
+  border-color: #2980b9;
+  background-color: rgba(41, 128, 185, 0.1);
+}
+
+.profile-image-upload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+.profile-image-upload:hover img {
+  opacity: 0.7;
+}
+
+.upload-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  text-align: center;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.profile-image-upload:hover .upload-text {
+  opacity: 1;
+}
+
+.profile-image-upload.dragging .upload-text {
+  opacity: 1;
 }

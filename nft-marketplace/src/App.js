@@ -149,7 +149,7 @@ function AppContent() {
               <Link to="/marketplace"><button>Explore Marketplace</button></Link>
               <Link to="/mint"><button>Mint your NFT</button></Link>
               {/* <Link to="/sell"><button>Sell your NFT</button></Link>   */}
-              <Link to="/profile"><button>Sell your NFT</button></Link>  
+              <Link to="/sell"><button>Sell your NFT</button></Link>  
               {/* NOW REDIRECT TO PROFILE. */}
             </nav>
 
@@ -185,7 +185,7 @@ function AppContent() {
                         />
                         <div className="nft-info">
                           <h3>{nft.name}</h3>
-                          <p className="nft-price">{nft.price} MATIC</p>
+                          <p className="nft-price">{nft.price} POL</p>
                           <p className="nft-amount">Available: {nft.remainingAmount} of {nft.amount}</p>
                           <Link to="/marketplace">
                             <button className="view-details-button">View in Marketplace</button>
@@ -206,8 +206,8 @@ function AppContent() {
         } />
         <Route path="/mint" element={<MintNFTPage account={account} />} />
         <Route path="/marketplace" element={<MarketplacePage account={account} />} />
-        <Route path="/profile" element={<ProfilePage account={account} />} />
-        <Route path="/sell" element={<SellNFTPage account={account} />} />
+        <Route path="/profile" element={<ProfilePage account={account} showProfileSection={true} />} />
+        <Route path="/sell" element={<ProfilePage account={account} showProfileSection={false} />} />
       </Routes>
 
       <footer className="app-footer">
