@@ -194,3 +194,10 @@ deploy-local: verify-env-local
 # Add this verification target for local deployment
 verify-env-local:
 	@echo "Using Anvil configuration"
+
+# Clean DB data using cleanCollections script
+clean-db:
+	@echo "Cleaning MongoDB collections data..."
+	@cd ../nft-marketplace && node src/scripts/cleanCollections.js
+# New target for deploy with DB cleanup
+deploy-clean-db: deploy clean-db
