@@ -62,6 +62,14 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         uint256 remainingAmount
     );
 
+    event MarketItemClaimExpired(
+        uint256 indexed marketItemId,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        address seller,
+        uint256 amount
+    );
+
     constructor() Ownable(msg.sender) {}
 
     // Utility function to check if a listing is expired
@@ -75,14 +83,10 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
         MarketItem storage item = _marketItems[marketItemId];
         require(item.active && item.remainingAmount > 0 && isExpired(marketItemId), "Listing not eligible for expiry handling");
 
-        // Save amount to return before modifying storage
         uint256 amountToReturn = item.remainingAmount;
-        
-        // Update state before transfer to prevent reentrancy
         item.remainingAmount = 0;
         item.active = false;
 
-        // Return remaining NFTs to seller
         IERC1155(item.nftContract).safeTransferFrom(
             address(this),
             item.seller,
@@ -91,7 +95,7 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
             ""
         );
 
-        emit MarketItemExpired(
+        emit MarketItemClaimExpired(
             marketItemId,
             item.nftContract,
             item.tokenId,
@@ -254,5 +258,37 @@ contract Marketplace is ERC1155Holder, ReentrancyGuard, Ownable {
 
     function getMarketItem(uint256 marketItemId) public view returns (MarketItem memory) {
         return _marketItems[marketItemId];
+    }
+
+    function fetchExpiredItems() public view returns (MarketItem[] memory) {
+        uint256 expiredCount = 0;
+        
+        // First pass: count expired items
+        for (uint256 i = 1; i <= _marketItemIds; i++) {
+            if (_marketItems[i].active && isExpired(i)) {
+                expiredCount++;
+            }
+        }
+
+        MarketItem[] memory expiredItems = new MarketItem[](expiredCount);
+        uint256 currentIndex = 0;
+        
+        // Second pass: populate array with expired items
+        for (uint256 i = 1; i <= _marketItemIds; i++) {
+            if (_marketItems[i].active && isExpired(i)) {
+                expiredItems[currentIndex] = _marketItems[i];
+                currentIndex++;
+            }
+        }
+        return expiredItems;
+    }
+
+    function cleanMultipleExpiredListings(uint256[] calldata marketItemIds) external {
+        for (uint256 i = 0; i < marketItemIds.length; i++) {
+            uint256 marketItemId = marketItemIds[i];
+            require(_marketItems[marketItemId].active, "Item not active");
+            require(isExpired(marketItemId), "Item not expired");
+            handleExpiredListing(marketItemId);
+        }
     }
 }

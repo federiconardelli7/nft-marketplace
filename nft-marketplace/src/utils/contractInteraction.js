@@ -506,76 +506,44 @@
     }
   }
 
-  export const listNFTForSale = async (nftContract, tokenId, amount, price, endDate) => {
+  export const listNFTForSale = async (nftContract, tokenId, amount, price, endTime) => {
     try {
-      console.log('Starting listing process with params:', {
-        nftContract,
-        tokenId: tokenId.toString(),
-        amount: amount.toString(),
-        price,
-        endDate
-      });
-  
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const signerAddress = await signer.getAddress();
-      
-      console.log('Connected wallet:', signerAddress);
-      
-      // Initialize marketplace contract
-      const marketplaceContract = new ethers.Contract(
-        MARKETPLACE_ADDRESS,
-        MARKETPLACE_ABI,
-        signer
-      );
-  
-      // Format parameters
+      const marketplaceContract = await getMarketplaceContract();
       const priceInWei = ethers.parseEther(price.toString());
-      const endTimeUnix = Math.floor(new Date(endDate).getTime() / 1000);
-      const tokenIdBN = ethers.getBigInt(tokenId);
-      const amountBN = ethers.getBigInt(amount);
-  
-      console.log('Formatted parameters:', {
-        nftAddress: NFT_ADDRESS,
-        tokenId: tokenIdBN.toString(),
-        amount: amountBN.toString(),
-        priceWei: priceInWei.toString(),
-        endTimeUnix: endTimeUnix.toString()
-      });
-  
-      // Get fee data
-      const feeData = await provider.getFeeData();
-      console.log('Fee data:', {
-        gasPrice: feeData.gasPrice?.toString(),
-        maxFeePerGas: feeData.maxFeePerGas?.toString(),
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString()
-      });
-  
-      // Prepare transaction
-      const tx = await marketplaceContract.listToken(
-        NFT_ADDRESS,
-        tokenIdBN,
-        amountBN,
+      const endTimeInSeconds = Math.floor(new Date(endTime).getTime() / 1000);
+
+      // First estimate the gas
+      const estimatedGas = await marketplaceContract.listToken.estimateGas(
+        nftContract,
+        tokenId,
+        amount,
         priceInWei,
-        endTimeUnix,
+        endTimeInSeconds
+      );
+
+      // Add a 20% buffer to the estimated gas
+      const gasLimit = ethers.toBigInt(Math.floor(Number(estimatedGas) * 1.2));
+
+      console.log('Estimated gas:', estimatedGas.toString());
+      console.log('Gas limit with buffer:', gasLimit.toString());
+
+      const tx = await marketplaceContract.listToken(
+        nftContract,
+        tokenId,
+        amount,
+        priceInWei,
+        endTimeInSeconds,
         {
-          gasLimit: ethers.toBigInt('500000'),
+          gasLimit: Math.max(Number(gasLimit), 500000),
           gasPrice: ethers.parseUnits('100', 'gwei')
         }
       );
-  
-      console.log('Transaction submitted:', tx.hash);
+
+      await tx.wait();
       return tx;
-  
     } catch (error) {
-      console.error('Listing error details:', {
-        message: error.message,
-        code: error.code,
-        data: error.data,
-        transaction: error.transaction
-      });
-  
-      throw new Error(error.message || 'Failed to list NFT');
+      console.error('Error listing NFT:', error);
+      throw error;
     }
   };
 
@@ -687,120 +655,99 @@
 
   export async function handleExpiredListings(account) {
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const marketplaceContract = new ethers.Contract(
-        MARKETPLACE_ADDRESS,
-        MARKETPLACE_ABI,
-        signer
-      );
-  
-      // Get all market items
-      const rawItems = await marketplaceContract.fetchMarketItems();
-      const now = Math.floor(Date.now() / 1000);
-  
-      // Process items
-      const marketItems = rawItems.map(item => ({
-        marketItemId: item.marketItemId.toString(),
-        tokenId: item.tokenId.toString(),
-        seller: item.seller.toLowerCase(),
-        price: ethers.formatEther(item.price),
-        amount: item.remainingAmount.toString(),
-        endTime: Number(item.endTime),
-        active: item.active
-      }));
-  
-      // Filter expired items
-      const expiredItems = marketItems.filter(item => {
-        const isExpired = item.endTime < now;
-        const belongsToUser = item.seller.toLowerCase() === account.toLowerCase();
-        return belongsToUser && item.active && isExpired;
-      });
-  
-      console.log('Found expired items:', expiredItems);
-  
-      if (expiredItems.length > 0) {
-        const nftContract = new ethers.Contract(
-          NFT_ADDRESS,
-          NFT_ABI,
-          provider
-        );
-  
+        const marketplaceContract = await getMarketplaceContract();
+        
+        // Get expired items
+        const expiredItems = await marketplaceContract.fetchExpiredItems();
+        console.log('Found expired items:', expiredItems);
+
         for (const item of expiredItems) {
-          try {
-            // Get initial balance for verification
-            const initialBalance = await nftContract.balanceOf(account, item.tokenId);
-            
-            // Estimate gas for the transaction
-            const gasEstimate = await marketplaceContract.cleanExpiredListing.estimateGas(
-              item.marketItemId
-            );
-  
-            // Add 20% buffer to gas estimate
-            const gasLimit = Math.floor(gasEstimate * 1.2);
-  
-            // Get current gas price
-            const feeData = await provider.getFeeData();
-            
-            // Clean the listing with optimized gas parameters
-            const tx = await marketplaceContract.cleanExpiredListing(
-              item.marketItemId,
-              { 
-                gasLimit: gasLimit,
-                maxFeePerGas: feeData.maxFeePerGas,
-                maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
-              }
-            );
-            
-            console.log('Clean transaction sent:', tx.hash);
-            const receipt = await tx.wait();
-  
-            // Verify NFT return
-            const newBalance = await nftContract.balanceOf(account, item.tokenId);
-            const balanceChange = newBalance - initialBalance;
-  
-            if (balanceChange.toString() === item.amount) {
-              console.log('NFT successfully returned to seller');
-              
-              // Log the expiration
-              await api.createActivity({
-                wallet_address: account.toLowerCase(),
-                activity_type: 'EXPIRED',
-                token_id: item.tokenId,
-                amount: item.amount,
-                price: item.price,
-                transaction_hash: tx.hash
-              });
-  
-              return true;
-            } else {
-              console.error('NFT return verification failed:', {
-                initialBalance: initialBalance.toString(),
-                newBalance: newBalance.toString(),
-                expectedChange: item.amount,
-                actualChange: balanceChange.toString()
-              });
+            if (item.seller.toLowerCase() === account.toLowerCase()) {
+                try {
+                    console.log('Cleaning expired listing:', item.marketItemId.toString());
+                    const tx = await marketplaceContract.cleanExpiredListing(item.marketItemId);
+                    await tx.wait();
+                    
+                    // Log the activity
+                    await api.createActivity({
+                        wallet_address: account.toLowerCase(),
+                        activity_type: 'EXPIRED',
+                        token_id: item.tokenId.toString(),
+                        amount: item.remainingAmount.toString(),
+                        price: ethers.formatEther(item.price),
+                        transaction_hash: tx.hash
+                    });
+                } catch (error) {
+                    console.error('Error cleaning listing:', error);
+                }
             }
-          } catch (error) {
-            console.error('Error cleaning listing:', {
-              marketItemId: item.marketItemId,
-              error: error.message,
-              code: error.code
-            });
-            
-            // Throw specific error for user feedback
-            if (error.code === 'UNPREDICTABLE_GAS_LIMIT') {
-              throw new Error('Transaction failed: Could not estimate gas. The listing might already be cleaned.');
-            }
-            throw error;
-          }
         }
-      }
-  
-      return false;
+        
+        return expiredItems.length > 0;
     } catch (error) {
-      console.error('Error in handleExpiredListings:', error);
+        console.error('Error handling expired listings:', error);
+        throw error;
+    }
+  }
+
+  export async function checkExpiredListings(account, shouldClean = false) {
+    try {
+      const marketplaceContract = await getMarketplaceContract();
+      const expiredItems = await marketplaceContract.fetchExpiredItems();
+      
+      // Filter items belonging to the account
+      const accountExpiredItems = expiredItems.filter(item => 
+        item.seller.toLowerCase() === account.toLowerCase()
+      );
+
+      if (shouldClean) {
+        await handleExpiredListings(account);
+      }
+
+      return accountExpiredItems;
+    } catch (error) {
+      console.error('Error checking expired listings:', error);
+      return [];
+    }
+  }
+
+  export async function claimExpiredListing(marketItemId) {
+    try {
+      const marketplaceContract = await getMarketplaceContract();
+      
+      // Convert marketItemId to BigInt
+      const marketItemIdBN = ethers.toBigInt(marketItemId);
+      
+      // Use fixed gas parameters instead of estimation
+      const tx = await marketplaceContract.cleanExpiredListing(marketItemIdBN, {
+        gasLimit: ethers.toBigInt('500000'),
+        gasPrice: ethers.parseUnits('100', 'gwei')
+      });
+      
+      const receipt = await tx.wait();
+      return receipt;
+    } catch (error) {
+      console.error('Error claiming expired listing:', error);
+      throw error;
+    }
+  }
+
+  export async function claimAllExpiredListings(marketItemIds) {
+    try {
+      const marketplaceContract = await getMarketplaceContract();
+      
+      // Use fixed gas parameters for batch transaction
+      const tx = await marketplaceContract.cleanMultipleExpiredListings(marketItemIds, {
+        gasLimit: ethers.toBigInt('500000'), // Higher gas limit for multiple operations
+        gasPrice: ethers.parseUnits('100', 'gwei')
+      });
+
+      // Wait for transaction confirmation and return it
+      const receipt = await tx.wait();
+      return receipt;
+
+    } catch (error) {
+      console.error('Error claiming all expired listings:', error);
       throw error;
     }
   }

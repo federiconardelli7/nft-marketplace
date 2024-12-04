@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import { fetchUserNFTs, fetchListedNFTs, listNFTForSale, listNFTForAuction, verifyNFTState, handleExpiredListings} from '../utils/contractInteraction';
+import { fetchUserNFTs, fetchListedNFTs, listNFTForSale, listNFTForAuction, verifyNFTState, handleExpiredListings, checkExpiredListings, claimExpiredListing, claimAllExpiredListings, getMarketplaceContract } from '../utils/contractInteraction';
 import { 
   NFT_ABI,
   NFT_ADDRESS,
@@ -10,6 +10,7 @@ import {
 import { ethers } from 'ethers';
 import { Link } from 'react-router-dom';
 import './ProfilePage.css';
+import { toast } from 'react-toastify';
 
 function ProfilePage({ account, showProfileSection = true }) {
   const [userNFTs, setUserNFTs] = useState([]);
@@ -56,6 +57,27 @@ function ProfilePage({ account, showProfileSection = true }) {
 
   const [nftContract, setNftContract] = useState(null);
 
+  const [expiredListings, setExpiredListings] = useState([]);
+  const [claimingStatus, setClaimingStatus] = useState({});
+
+  const [hasExpiredNFTs, setHasExpiredNFTs] = useState(false);
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
+
+  const [signer, setSigner] = useState(null);
+
+  const [isClaimingAll, setIsClaimingAll] = useState(false);
+
+  useEffect(() => {
+    const setupSigner = async () => {
+      if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const newSigner = await provider.getSigner();
+        setSigner(newSigner);
+      }
+    };
+    setupSigner();
+  }, []);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -92,48 +114,36 @@ function ProfilePage({ account, showProfileSection = true }) {
   }, [currency]);
 
   useEffect(() => {
-    if (!account) return;
-  
-    // Check for expired listings immediately
-    handleExpiredListings(account);
-  
-    // Then check every 5 minutes
-    const interval = setInterval(() => {
-      handleExpiredListings(account);
-    }, 5 * 60 * 1000);
-  
-    return () => clearInterval(interval);
-  }, [account]);
-
-useEffect(() => {
-  const checkAndHandleExpiredListings = async () => {
-    if (!account) return;
-    
-    try {
-      // Handle any expired listings first
-      const hadExpiredListings = await handleExpiredListings(account);
-      
-      if (hadExpiredListings) {
-        // Refresh NFTs after handling expired listings
-        const [updatedNFTs, updatedListedNFTs] = await Promise.all([
-          fetchUserNFTs(account),
-          fetchListedNFTs(account)
-        ]);
-        
-        setUserNFTs(updatedNFTs);
-        setListedNFTs(updatedListedNFTs);
-      }
-    } catch (error) {
-      console.error('Error checking expired listings:', error);
+    if (account) {
+      checkForExpiredNFTs();
     }
-  };
+  }, [account]);
+// useEffect(() => {
+//   const checkExpiredListings = async () => {
+//     if (!account) return;
+    
+//     try {
+//       const hadExpiredListings = await handleExpiredListings(account);
+//       if (hadExpiredListings) {
+//         // Refresh NFTs and listed items
+//         const [updatedNFTs, updatedListedNFTs] = await Promise.all([
+//           fetchUserNFTs(account),
+//           fetchListedNFTs(account)
+//         ]);
+//         setUserNFTs(updatedNFTs);
+//         setListedNFTs(updatedListedNFTs);
+//       }
+//     } catch (error) {
+//       console.error('Error checking expired listings:', error);
+//     }
+//   };
 
-  // Check immediately and then every minute
-  checkAndHandleExpiredListings();
-  const interval = setInterval(checkAndHandleExpiredListings, 60 * 1000);
+//   // Check immediately and then every minute
+//   checkExpiredListings();
+//   const interval = setInterval(checkExpiredListings, 60 * 1000);
 
-  return () => clearInterval(interval);
-}, [account]);
+//   return () => clearInterval(interval);
+// }, [account]);
 
   const handleEditProfile = () => {
     setIsEditing(true);
@@ -250,7 +260,7 @@ useEffect(() => {
         MARKETPLACE_ADDRESS,
         true,
         {
-          gasLimit: ethers.toBigInt('300000'),
+          gasLimit: ethers.toBigInt('150000'), //300000
           gasPrice: ethers.parseUnits('100', 'gwei')
         }
       );
@@ -468,7 +478,7 @@ useEffect(() => {
         nft.listing.marketItemId,
         amountToRemove,
         { 
-          gasLimit: ethers.toBigInt('500000'),
+          gasLimit: ethers.toBigInt('150000'),
           gasPrice: ethers.parseUnits('100', 'gwei')
         }
       );
@@ -694,18 +704,8 @@ useEffect(() => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!account) return;
-      // Check for expired listings immediately
-      handleExpiredListings(account);
-      // Then check every minute instead of every 5 minutes
-      const interval = setInterval(() => {
-        handleExpiredListings(account);
-      }, 60 * 1000);  // Check every minute
-
       setIsLoading(true);
       try {
-        // Handle expired listings first
-        await handleExpiredListings(account);
         // Fetch all user's NFTs
         const userNFTsData = await fetchUserNFTs(account);
         setUserNFTs(userNFTsData);
@@ -717,6 +717,7 @@ useEffect(() => {
         // Fetch activities
         const userActivities = await api.getUserActivities(account);
         setActivities(userActivities);
+
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -738,9 +739,309 @@ useEffect(() => {
     }).format(date);
   };
 
+  const handleClaimExpired = async (marketItemId) => {
+    try {
+      setClaimingStatus(prev => ({ ...prev, [marketItemId]: 'claiming' }));
+      
+      // Show loading toast
+      toast.info('Claiming your NFT...', { autoClose: false, toastId: 'claiming' });
+      
+      await claimExpiredListing(marketItemId);
+      
+      // Refresh all data
+      const [expired, updatedNFTs, updatedListedNFTs, updatedActivities] = await Promise.all([
+        checkExpiredListings(account),
+        fetchUserNFTs(account),
+        fetchListedNFTs(account),
+        api.getUserActivities(account)
+      ]);
+      
+      setExpiredListings(expired);
+      setUserNFTs(updatedNFTs);
+      setListedNFTs(updatedListedNFTs);
+      setActivities(updatedActivities);
+      
+      setClaimingStatus(prev => ({ ...prev, [marketItemId]: 'claimed' }));
+      
+      // Update success toast
+      toast.dismiss('claiming');
+      toast.success('NFT claimed successfully!');
+      
+      // Clear claimed status after animation
+      setTimeout(() => {
+        setClaimingStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[marketItemId];
+          return newStatus;
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error claiming:', error);
+      setClaimingStatus(prev => ({ ...prev, [marketItemId]: 'error' }));
+      toast.dismiss('claiming');
+      toast.error('Failed to claim NFT. Please try again.');
+    }
+  };
+
+  // const renderExpiredListings = () => {
+  //   if (expiredListings.length === 0) return null;
+
+  //   return (
+  //     <div className="expired-listings-section">
+  //       <h3 className="section-title">
+  //         Expired Listings Available to Claim 
+  //         <span className="expired-badge">{expiredListings.length}</span>
+  //       </h3>
+  //       <div className="expired-listings-grid">
+  //         {expiredListings.map((item) => (
+  //           <div key={item.marketItemId.toString()} className="expired-item">
+  //             <div className="expired-item-image">
+  //               {item.metadata?.image && (
+  //                 <img 
+  //                   src={item.metadata.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')} 
+  //                   alt={item.metadata.name || `NFT ${item.tokenId}`}
+  //                   onError={(e) => {
+  //                     e.target.onerror = null;
+  //                     e.target.src = '/placeholder-nft.png';
+  //                   }}
+  //                 />
+  //               )}
+  //             </div>
+  //             <div className="expired-item-info">
+  //               <h4>{item.metadata?.name || `NFT #${item.tokenId}`}</h4>
+  //               <p className="token-id">Token ID: {item.tokenId.toString()}</p>
+  //               <p className="amount">Amount: {item.remainingAmount.toString()}</p>
+  //               <p className="expiry">Expired: {formatDate(item.endTime * 1000)}</p>
+  //             </div>
+  //             <button 
+  //               className={`claim-button ${claimingStatus[item.marketItemId] || ''}`}
+  //               onClick={() => handleClaimExpired(item.marketItemId)}
+  //               disabled={claimingStatus[item.marketItemId] === 'claiming'}
+  //             >
+  //               {claimingStatus[item.marketItemId] === 'claiming' ? (
+  //                 <>
+  //                   <span className="spinner"></span>
+  //                   Claiming...
+  //                 </>
+  //               ) : claimingStatus[item.marketItemId] === 'claimed' ? (
+  //                 <>
+  //                   <span className="check-icon">✓</span>
+  //                   Claimed!
+  //                 </>
+  //               ) : (
+  //                 'Claim Back'
+  //               )}
+  //             </button>
+  //           </div>
+  //         ))}
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
+
+  // const handleCheckExpired = async () => {
+  //   await checkForExpiredNFTs();
+  //   if (expiredListings.length > 0) {
+  //       setShowSellModal(true); // Or create a new modal for expired NFTs
+  //   }
+  // };
+
+  // Add this function to check for expired NFTs without cleaning them
+  const checkForExpiredNFTs = async () => {
+    if (!account) return;
+    try {
+      const expired = await checkExpiredListings(account, false); // Add a 'false' parameter to your checkExpiredListings function
+      setHasExpiredNFTs(expired.length > 0);
+      setExpiredListings(expired);
+    } catch (error) {
+      console.error('Error checking expired NFTs:', error);
+    }
+  };
+
+  // Only check once when component mounts
   useEffect(() => {
+    checkForExpiredNFTs();
+  }, [account]);
+
+  const ExpiredNFTsModal = () => {
+    const [nftMetadata, setNftMetadata] = useState({});
+
+    useEffect(() => {
+      const fetchMetadata = async () => {
+        const metadata = {};
+        for (const item of expiredListings) {
+          try {
+            const nftContract = new ethers.Contract(
+              NFT_ADDRESS,
+              NFT_ABI,  // Use the full NFT_ABI instead of minimal interface
+              signer
+            );
+            
+            // Get token URI
+            const tokenURI = await nftContract.uri(item.tokenId);
+            console.log('TokenURI:', tokenURI); // Debug log
+            
+            // Convert IPFS URI to HTTP URL and fetch metadata
+            const url = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log('Metadata:', data); // Debug log
+            
+            metadata[item.tokenId.toString()] = {
+              image: data.image?.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/'),
+              name: data.name
+            };
+          } catch (error) {
+            console.error('Error fetching metadata for token:', item.tokenId.toString(), error);
+          }
+        }
+        setNftMetadata(metadata);
+      };
+
+      if (expiredListings.length > 0 && signer) {
+        fetchMetadata();
+      }
+    }, [expiredListings, signer]);
+
+    return (
+      <div className="modal">
+        <div className="modal-content">
+          <button 
+            onClick={() => setShowExpiredModal(false)}
+            className="modal-close-x"
+          >
+            ×
+          </button>
+          
+          <h2>Expired NFTs</h2>
+          
+          <div className="expired-listings-grid">
+            {expiredListings.map((item) => {
+              const metadata = nftMetadata[item.tokenId.toString()] || {};
+              return (
+                <div key={item.marketItemId.toString()} className="expired-item">
+                  <img 
+                    src={metadata.image || '/placeholder-nft.png'}
+                    alt={metadata.name || `NFT #${item.tokenId.toString()}`}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/placeholder-nft.png';
+                    }}
+                  />
+                  <div className="expired-item-info">
+                    <h4>{metadata.name || `NFT #${item.tokenId.toString()}`}</h4>
+                    {/* <p>Token ID: {item.tokenId.toString()}</p> */}
+                    <p>Amount: {item.remainingAmount.toString()}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {expiredListings.length > 0 && (
+            <button 
+              className="claim-all-button"
+              onClick={handleClaimAllExpired}
+              disabled={isClaimingAll}
+            >
+              {isClaimingAll ? (
+                <>
+                  <span className="spinner"></span>
+                  Claiming All...
+                </>
+              ) : 'Claim All NFTs'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleClaimAllExpired = async () => {
+    try {
+      setIsClaimingAll(true);
+      toast.info('Claiming all expired NFTs...', { autoClose: false, toastId: 'claiming-all' });
+      
+      const marketItemIds = expiredListings.map(item => item.marketItemId);
+      
+      // Call contract method and wait for the receipt
+      const receipt = await claimAllExpiredListings(marketItemIds);
+      console.log('Claim receipt:', receipt); // Debug log
+
+      // Create activity records for each claimed NFT
+      await Promise.all(expiredListings.map(item => 
+        api.createActivity({
+          wallet_address: account.toLowerCase(),
+          activity_type: 'CLAIM_EXPIRED',
+          token_id: item.tokenId.toString(),
+          amount: item.remainingAmount.toString(),
+          transaction_hash: receipt.transactionHash
+        })
+      ));
+      
+      // Refresh all data
+      const [expired, updatedNFTs, updatedListedNFTs, updatedActivities] = await Promise.all([
+        checkExpiredListings(account),
+        fetchUserNFTs(account),
+        fetchListedNFTs(account),
+        api.getUserActivities(account)
+      ]);
+      
+      setExpiredListings(expired);
+      setUserNFTs(updatedNFTs);
+      setListedNFTs(updatedListedNFTs);
+      setActivities(updatedActivities);
+      
+      toast.dismiss('claiming-all');
+      toast.success('All NFTs claimed successfully!');
+      
+      setTimeout(() => {
+        setShowExpiredModal(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error claiming all:', error);
+      toast.dismiss('claiming-all');
+      toast.error('Failed to claim all NFTs. Please try again.');
+    } finally {
+      setIsClaimingAll(false);
+    }
+  };
+
+  useEffect(() => {
+    const listenToExpiredEvents = async () => {
+      const marketplaceContract = await getMarketplaceContract();
+      
+      marketplaceContract.on("MarketItemExpired", async (marketItemId, nftContract, tokenId, seller, amount, event) => {
+        if (seller.toLowerCase() === account.toLowerCase()) {
+          try {
+            await api.createActivity({
+              wallet_address: seller.toLowerCase(),
+              activity_type: 'EXPIRED',
+              token_id: tokenId.toString(),
+              amount: amount.toString(),
+              transaction_hash: event.transactionHash
+            });
+            
+            // Refresh activities
+            const updatedActivities = await api.getUserActivities(account);
+            setActivities(updatedActivities);
+            
+          } catch (error) {
+            console.error('Error handling expired event:', error);
+          }
+        }
+      });
+
+      return () => {
+        marketplaceContract.removeAllListeners("MarketItemExpired");
+      };
+    };
+
     if (account) {
-      handleExpiredListings(account);
+      listenToExpiredEvents();
     }
   }, [account]);
 
@@ -908,6 +1209,16 @@ useEffect(() => {
                 NFT Listed
               </button>
               {/* <button onClick={() => handleExpiredListings(account)}>Clean Expired Listings</button> */}
+
+              {hasExpiredNFTs && (
+                <button 
+                  className="claim-expired-button"
+                  onClick={() => setShowExpiredModal(true)}
+                >
+                  Claim Expired NFTs ({expiredListings.length})
+                </button>
+              )}
+
               <button 
                 className={activeTab === 'activity' ? 'active' : ''}
                 onClick={() => setActiveTab('activity')}
@@ -998,7 +1309,7 @@ useEffect(() => {
                             const nftName = relatedNFT ? relatedNFT.name : `NFT #${activity.token_id}`;
                   
                             return (
-                              <tr key={`${activity.transaction_hash}-${activity.token_id}-${activity.activity_type}`}>
+                              <tr key={`${activity.transaction_hash || 'no-tx'}-${activity.token_id}-${activity.activity_type}`}>
                                 <td>
                                   <span className={`activity-type ${activity.activity_type.toLowerCase()}`}>
                                     {activity.activity_type}
@@ -1015,14 +1326,18 @@ useEffect(() => {
                                   {activity.price && `${activity.price} POL`}
                                 </td>
                                 <td>
-                                  <a 
-                                    href={`https://amoy.polygonscan.com/tx/${activity.transaction_hash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="tx-link"
-                                  >
-                                    {activity.transaction_hash.slice(0, 6)}...{activity.transaction_hash.slice(-4)}
-                                  </a>
+                                  {activity.transaction_hash ? (
+                                    <a 
+                                      href={`https://amoy.polygonscan.com/tx/${activity.transaction_hash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="tx-link"
+                                    >
+                                      {activity.transaction_hash.slice(0, 6)}...{activity.transaction_hash.slice(-4)}
+                                    </a>
+                                  ) : (
+                                    '-'
+                                  )}
                                 </td>
                                 <td>{formatDate(activity.created_at)}</td>
                               </tr>
@@ -1083,9 +1398,9 @@ useEffect(() => {
                   >
                     Fixed Price
                   </button>
-                  <button
-                    className={saleType === 'auction' ? 'active' : ''}
-                    onClick={() => setSaleType('auction')}
+                  <button 
+                    className="timed-auction-btn"
+                    onClick={(e) => e.preventDefault()}
                   >
                     Timed Auction
                   </button>
@@ -1345,6 +1660,9 @@ useEffect(() => {
               />
             </div>
           </div>
+        )}
+        {showExpiredModal && (
+          <ExpiredNFTsModal />
         )}
       </div>
     </div>

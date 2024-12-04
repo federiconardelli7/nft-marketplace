@@ -491,17 +491,47 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .activity-type {
   display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  text-transform: capitalize;
 }
 
-.activity-type.mint { background: #e6f7ff; color: #0066cc; }
-.activity-type.list { background: #f6ffed; color: #52c41a; }
-.activity-type.buy { background: #fff7e6; color: #fa8c16; }
-.activity-type.sell { background: #fff1f0; color: #f5222d; }
-.activity-type.unlist {background-color: #ffebee; color: #c62828; }
-.activity-type.expired {  background: #ffebee; color: #c62828; }
+.activity-type.mint {
+  background-color: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.activity-type.list {
+  background-color: rgba(155, 89, 182, 0.2);
+  color: #8e44ad;
+}
+
+.activity-type.buy {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #27ae60;
+}
+
+.activity-type.sell {
+  background-color: rgba(230, 126, 34, 0.2);
+  color: #d35400;
+}
+
+.activity-type.unlist {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #c0392b;
+}
+
+.activity-type.expired {
+  background-color: rgba(189, 195, 199, 0.2);
+  color: #7f8c8d;
+}
+
+.activity-type.claim_expired {
+  background-color: rgba(241, 196, 15, 0.2);
+  color: #f39c12;
+}
 
 .tx-link {
   color: var(--primary-color);
@@ -703,12 +733,17 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .activity-type.unlist {
   background-color: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  color: #c0392b;
 }
 
 .activity-type.expired {
-  background-color: rgba(192, 57, 43, 0.2);
-  color: #c0392b;
+  background-color: rgba(189, 195, 199, 0.2);
+  color: #7f8c8d;
+}
+
+.activity-type.claim_expired {
+  background-color: rgba(241, 196, 15, 0.2);
+  color: #f39c12;
 }
 
 .tx-link {
@@ -1045,4 +1080,408 @@ select:disabled {
 
 .profile-image-upload.dragging .upload-text {
   opacity: 1;
+}
+
+.expired-listings-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.expired-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem auto;
+  max-width: 1200px;
+}
+
+/* When there's only one item */
+.expired-listings-grid:has(.expired-item:only-child) {
+  display: flex;
+  justify-content: center;
+}
+
+/* Keep existing card styles unchanged */
+.expired-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s;
+  border: 2px solid var(--text-color);
+  background: var(--card-bg);
+  padding: 8px;
+  width: 205px; /* Fixed width */
+}
+
+.expired-item:hover {
+  transform: translateY(-5px);
+}
+
+.expired-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.expired-item-info {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 8px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.expired-item-info h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expired-item-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #4CAF50;
+}
+
+.claim-button {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: #4CAF50;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.claim-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.claim-button.claiming {
+  background: #2196F3;
+}
+
+.claim-button.error {
+  background: #f44336;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.expired-badge {
+  background: #f44336;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.claim-expired-button {
+    padding: 10px 20px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.claim-expired-button:hover {
+    background-color: #2ecc71;
+    transform: translateY(-2px);
+}
+
+.claim-expired-button:active {
+    transform: translateY(0);
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.expired-item-image {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.expired-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.expired-item:hover .expired-item-image img {
+  transform: scale(1.05);
+}
+
+.close-modal-button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: #333;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.close-modal-button:hover {
+  background: #444;
+}
+
+.expired-item {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.expired-item::after {
+  content: 'EXPIRED';
+  position: absolute;
+  top: 1rem;
+  right: -2rem;
+  background: #f44336;
+  color: white;
+  padding: 0.25rem 2rem;
+  transform: rotate(45deg);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.claim-all-button {
+  width: 100%;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  border: none;
+  background: #2196F3;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.claim-all-button:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+}
+
+.claim-all-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #f44336;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.modal-close-x:hover {
+  transform: scale(1.1);
+}
+
+.expired-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.expired-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.expired-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.expired-item-info {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.expired-item:hover {
+  transform: translateY(-5px);
+}
+
+.timed-auction-btn {
+  background-color: rgba(189, 195, 199, 0.4) !important;
+  color: var(--text-color) !important;
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  pointer-events: auto !important;
+  position: relative;
+}
+
+.timed-auction-btn:hover::after {
+  content: "Under development";
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  border-radius: 5px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+}
+
+/* Dark theme specific styles */
+.dark-mode .timed-auction-btn:hover::after {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+th {
+  position: relative;
+  padding-right: 20px; /* Space for the icon */
+}
+
+th i {
+  margin-left: 5px;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: color 0.3s;
+}
+
+th i:hover {
+  color: var(--primary-color);
+}
+
+.activity-table th {
+  position: relative;
+  padding: 12px;
+}
+
+.activity-table th select,
+.activity-table th input {
+  margin-left: 5px;
+  padding: 4px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+}
+
+.filter-icon {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--text-color);
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.filter-icon:hover {
+  opacity: 1;
+  color: var(--primary-color);
+}
+
+/* Tooltip style */
+.filter-icon::after {
+  content: "Filter";
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.filter-icon:hover::after {
+  opacity: 1;
+}
+
+/* Dark theme specific styles */
+.dark-mode .filter-icon::after {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
