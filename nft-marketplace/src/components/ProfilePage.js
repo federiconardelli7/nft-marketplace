@@ -968,8 +968,16 @@ function ProfilePage({ account, showProfileSection = true }) {
       
       // Call contract method and wait for the receipt
       const receipt = await claimAllExpiredListings(marketItemIds);
-      console.log('Claim receipt:', receipt); // Debug log
-
+      console.log('Claim receipt:', receipt); // Let's see what we get in the receipt
+  
+      // Get the transaction hash from the receipt (ethers v6 uses .hash)
+      const transactionHash = receipt.hash || receipt.transactionHash;
+      
+      if (!transactionHash) {
+        console.error('No transaction hash in receipt:', receipt);
+        throw new Error('Failed to get transaction hash from receipt');
+      }
+  
       // Create activity records for each claimed NFT
       await Promise.all(expiredListings.map(item => 
         api.createActivity({
@@ -977,11 +985,11 @@ function ProfilePage({ account, showProfileSection = true }) {
           activity_type: 'CLAIM_EXPIRED',
           token_id: item.tokenId.toString(),
           amount: item.remainingAmount.toString(),
-          transaction_hash: receipt.transactionHash
+          transaction_hash: transactionHash // Use the extracted hash
         })
       ));
       
-      // Refresh all data
+      // Rest of your code...
       const [expired, updatedNFTs, updatedListedNFTs, updatedActivities] = await Promise.all([
         checkExpiredListings(account),
         fetchUserNFTs(account),
@@ -1010,40 +1018,95 @@ function ProfilePage({ account, showProfileSection = true }) {
     }
   };
 
-  useEffect(() => {
-    const listenToExpiredEvents = async () => {
-      const marketplaceContract = await getMarketplaceContract();
+  
+  ///// I CAN'T HANDLE THE EXPIRED ITEMS WITHOUT AN INTERACTION (SO THE USER HAS TO PAY FOR THE TRANSACTION) AND IS NOT WORTH IT. SO I'LL KEEP THE CLAIM_EXPIRED AS AN EVENT.
+  // useEffect(() => {
+  //   const checkAndRecordExpiredListings = async () => {
+  //     if (!account) return;
       
-      marketplaceContract.on("MarketItemExpired", async (marketItemId, nftContract, tokenId, seller, amount, event) => {
-        if (seller.toLowerCase() === account.toLowerCase()) {
-          try {
-            await api.createActivity({
-              wallet_address: seller.toLowerCase(),
-              activity_type: 'EXPIRED',
-              token_id: tokenId.toString(),
-              amount: amount.toString(),
-              transaction_hash: event.transactionHash
-            });
-            
-            // Refresh activities
-            const updatedActivities = await api.getUserActivities(account);
-            setActivities(updatedActivities);
-            
-          } catch (error) {
-            console.error('Error handling expired event:', error);
-          }
-        }
-      });
-
-      return () => {
-        marketplaceContract.removeAllListeners("MarketItemExpired");
-      };
-    };
-
-    if (account) {
-      listenToExpiredEvents();
-    }
-  }, [account]);
+  //     const now = Math.floor(Date.now() / 1000);
+  //     const processedNFTs = new Set();
+      
+  //     const newlyExpiredNFTs = listedNFTs.filter(nft => {
+  //       const nftKey = `${nft.id}-${nft.listing.endTime}`;
+  //       if (processedNFTs.has(nftKey)) {
+  //         return false;
+  //       }
+  
+  //       // Convert ISO string to Unix timestamp
+  //       const endTime = Math.floor(new Date(nft.listing.endTime).getTime() / 1000);
+        
+  //       console.log('Checking NFT expiration:', {
+  //         id: nft.id,
+  //         endTime,
+  //         endTimeDate: new Date(endTime * 1000).toISOString(),
+  //         now,
+  //         nowDate: new Date(now * 1000).toISOString(),
+  //         originalEndTime: nft.listing.endTime
+  //       });
+  
+  //       if (now > endTime && !nft.isMarkedExpired) {
+  //         processedNFTs.add(nftKey);
+  //         return true;
+  //       }
+  //       return false;
+  //     });
+  
+  //     for (const nft of newlyExpiredNFTs) {
+  //       try {
+  //         // Convert ISO string to Unix timestamp properly
+  //         const endTimeUnix = Math.floor(new Date(nft.listing.endTime).getTime() / 1000);
+  //         const endTimeMs = endTimeUnix * 1000;
+  //         const expirationDate = new Date(endTimeMs);
+  
+  //         console.log('Creating expired activity with dates:', {
+  //           endTimeUnix,
+  //           endTimeMs,
+  //           expirationDate,
+  //           isoString: expirationDate.toISOString(),
+  //           originalEndTime: nft.listing.endTime
+  //         });
+  
+  //         await api.createActivity({
+  //           wallet_address: account.toLowerCase(),
+  //           activity_type: 'EXPIRED',
+  //           token_id: nft.id,
+  //           amount: nft.listing.amount,
+  //           price: nft.listing.price,
+  //           transaction_hash: null,
+  //           // Use the original ISO string directly since it's already in the correct format
+  //           created_at: nft.listing.endTime
+  //         });
+  
+  //         setListedNFTs(prev => prev.map(prevNft => 
+  //           prevNft.id === nft.id 
+  //             ? { ...prevNft, isMarkedExpired: true }
+  //             : prevNft
+  //         ));
+  
+  //         const updatedActivities = await api.getUserActivities(account);
+  //         setActivities(updatedActivities);
+  
+  //       } catch (error) {
+  //         console.error('Error recording expired NFT activity:', error, {
+  //           nft,
+  //           endTime: nft.listing.endTime
+  //         });
+  //       }
+  //     }
+  //   };
+  
+  //   console.log('Current listedNFTs:', listedNFTs.map(nft => ({
+  //     id: nft.id,
+  //     endTime: nft.listing.endTime,
+  //     date: new Date(nft.listing.endTime).toISOString()
+  //   })));
+  
+  //   const interval = setInterval(checkAndRecordExpiredListings, 60 * 1000);
+  //   checkAndRecordExpiredListings();
+  
+  //   return () => clearInterval(interval);
+  // }, [account, listedNFTs]);
 
   return (
     <div className="profile-page-wrapper">

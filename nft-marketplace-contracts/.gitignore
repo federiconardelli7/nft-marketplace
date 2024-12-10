@@ -39,3 +39,12 @@ docs/
 
 #Local deployment on Anvil
 **/broadcast/
+
+# Ignore generated deployment run files
+broadcast/DeployMarketplace.s.sol/80002/run-latest.json
+
+# Ignore ProfilePage component changes
+nft-marketplace/src/components/ProfilePage.js
+
+# Ignore Marketplace contract ABI changes
+nft-marketplace/src/contracts/Marketplace.json
